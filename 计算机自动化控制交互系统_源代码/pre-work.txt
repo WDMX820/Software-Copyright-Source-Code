@@ -1,0 +1,117 @@
+import io.netty.handler.ssl.util.SimpleTrustManagerFactory; // 导入 Netty 的 SimpleTrustManagerFactory
+import io.netty.util.internal.EmptyArrays; // 导入用于空数组的工具
+import io.netty.util.internal.logging.InternalLogger; // 内部日志记录接口
+import io.netty.util.internal.logging.InternalLoggerFactory; // 创建日志记录实例的工厂
+import java.security.KeyStore; // 导入 KeyStore，用于管理密钥
+import java.security.cert.X509Certificate; // 导入 X509Certificate 类，用于处理证书
+import javax.net.ssl.ManagerFactoryParameters; // TrustManagerFactory 的管理参数
+import javax.net.ssl.TrustManager; // 导入 TrustManager 接口
+import javax.net.ssl.TrustManagerFactory; // 导入 TrustManagerFactory，用于创建 TrustManagers
+import javax.net.ssl.X509TrustManager; // 导入 X509TrustManager 接口，用于 X.509 证书
+
+// 创建不安全信任管理器的工厂类
+public final class InsecureTrustManagerFactory extends SimpleTrustManagerFactory {
+    // 日志记录实例，用于记录该类的活动
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(InsecureTrustManagerFactory.class);
+    // 不安全信任管理器工厂的单例实例
+    public static final TrustManagerFactory INSTANCE = new InsecureTrustManagerFactory();
+
+    // 不安全的 X509TrustManager 实现，接受任何证书
+    private static final TrustManager tm = new X509TrustManager() {
+        // 检查客户端证书是否受信任
+        public void checkClientTrusted(X509Certificate[] chain, String s) {
+            InsecureTrustManagerFactory.logger.debug("接受客户端证书: " + chain[0].getSubjectDN());
+        }
+        // 检查服务器证书是否受信任
+        public void checkServerTrusted(X509Certificate[] chain, String s) {
+            InsecureTrustManagerFactory.logger.debug("接受服务器证书: " + chain[0].getSubjectDN());
+        }
+        // 返回接受的颁发者的空数组
+        public X509Certificate[] getAcceptedIssuers() {
+            return EmptyArrays.EMPTY_X509_CERTIFICATES;
+        }
+    };
+
+    // 使用 KeyStore 初始化方法（未实现）
+    protected void engineInit(KeyStore keyStore) throws Exception {
+    }
+
+    // 使用 ManagerFactoryParameters 初始化方法（未实现）
+    protected void engineInit(ManagerFactoryParameters managerFactoryParameters) throws Exception {
+    }
+
+    // 返回 TrustManagers 数组（返回不安全的信任管理器）
+    protected TrustManager[] engineGetTrustManagers() {
+        return new TrustManager[]{tm};
+    }
+}
+
+// 使用 OpenJDK 生成自签名证书的类
+package io.netty.handler.ssl.util;
+
+import io.netty.handler.ssl.util.SelfSignedCertificate; // 导入自签名证书的工具
+import java.math.BigInteger; // 导入大整数处理
+import java.security.KeyPair; // 导入公私钥对
+import java.security.PrivateKey; // 导入私钥
+import java.security.SecureRandom; // 导入用于生成安全随机数的类
+import java.security.cert.CertificateException; // 导入处理证书异常的类
+import sun.security.x509.AlgorithmId; // 导入 X.509 证书中的算法标识符
+import sun.security.x509.CertificateAlgorithmId; // 导入证书算法 ID
+import sun.security.x509.CertificateIssuerName; // 导入证书颁发者名称
+import sun.security.x509.CertificateSerialNumber; // 导入证书序列号
+import sun.security.x509.CertificateSubjectName; // 导入证书主题名称
+import sun.security.x509.CertificateValidity; // 导入证书有效期
+import sun.security.x509.CertificateVersion; // 导入证书版本
+import sun.security.x509.CertificateX509Key; // 导入 X.509 密钥处理
+import sun.security.x509.X500Name; // 导入 X.500 名称表示
+import sun.security.x509.X509CertImpl; // 导入 X.509 证书实现
+import sun.security.x509.X509CertInfo; // 导入 X.509 证书信息
+
+// 生成自签名 X.509 证书的类
+final class OpenJdkSelfSignedCertGenerator {
+    // 生成自签名证书的方法
+    static String[] generate(String fqdn, KeyPair keypair, SecureRandom random) throws Exception {
+        PrivateKey key = keypair.getPrivate(); // 从密钥对中获取私钥
+        X509CertInfo info = new X509CertInfo(); // 创建新的 X509CertInfo 对象
+        X500Name owner = new X500Name("CN=" + fqdn); // 创建包含完整域名的所有者名称
+
+        // 设置证书版本
+        info.set("version", new CertificateVersion(2));
+        // 设置证书的随机序列号
+        info.set("serialNumber", new CertificateSerialNumber(new BigInteger(64, random)));
+
+        // 设置证书的主题，处理可能发生的异常
+        try {
+            info.set("subject", new CertificateSubjectName(owner));
+        } catch (CertificateException var8) {
+            info.set("subject", owner);
+        }
+
+        // 设置证书的颁发者，处理可能发生的异常
+        try {
+            info.set("issuer", new CertificateIssuerName(owner));
+        } catch (CertificateException var7) {
+            info.set("issuer", owner);
+        }
+
+        // 设置证书的有效期
+        info.set("validity", new CertificateValidity(SelfSignedCertificate.NOT_BEFORE, SelfSignedCertificate.NOT_AFTER));
+        // 设置证书的公钥
+        info.set("key", new CertificateX509Key(keypair.getPublic()));
+        // 设置证书的算法标识符
+        info.set("algorithmID", new CertificateAlgorithmId(new AlgorithmId(AlgorithmId.sha1WithRSAEncryption_oid)));
+
+        // 创建证书并使用私钥进行签名
+        X509CertImpl cert = new X509CertImpl(info);
+        cert.sign(key, "SHA1withRSA"); // 使用 SHA1 和 RSA 签名
+
+        // 更新证书信息中的算法 ID
+        info.set("algorithmID.algorithm", cert.get("x509.algorithm"));
+        cert = new X509CertImpl(info); // 使用更新的信息创建新的证书
+        cert.sign(key, "SHA1withRSA"); // 再次签名以完成证书
+        cert.verify(keypair.getPublic()); // 使用公钥验证证书
+
+        // 返回自签名证书的详细信息
+        return SelfSignedCertificate.newSelfSignedCertificate(fqdn, key, cert);
+    }
+}

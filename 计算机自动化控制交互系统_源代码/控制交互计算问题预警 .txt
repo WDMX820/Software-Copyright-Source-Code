@@ -1,0 +1,380 @@
+//控制交互计算问题预警 
+   private LinkedHashMap components = new LinkedHashMap();
+   public Panel(String name, int x, int y, int sizeX, int sizeY, int color, boolean visible) {
+      super(name, sizeX, sizeY);
+      this.setPosition(x, y);
+      this.color = color;
+      this.setVisible(visible);
+   }
+   public void setLastPanel(Panel panel) {
+      this.lastPanel = panel;
+   }
+   public Panel getLastPanel() {
+      return this.lastPanel;
+   }
+   public void setScrollable(boolean scrollable) {
+      this.scrollable = scrollable;
+   }
+   public boolean isScrollable() {
+      return this.scrollable;
+   }
+   public void addRelativeComponent(Component component, int x, int y) {
+      if(component == null) {
+         throw new NullPointerException("Component cannot be null!");
+      } else {
+         component.setX(x);
+         component.setY(y);
+         component.setRelative(true);
+         component.setOptionalRenderScreen(this.optionalRenderScreen);
+         this.addComponent(component);
+      }
+   }
+   public void removeComponent(Component component) {
+      this.components.remove(component);
+   }
+   public boolean removeComponentByID(String name) {
+      Component component = this.getComponentByID(name);
+      if(component != null) {
+         this.removeComponent(component);
+         return true;
+      } else {
+         return false;
+      }
+   }
+   public void addComponent(Component component) {
+      try {
+         if(component == null) {
+            throw new NullPointerException("Component cannot be null!");
+         }
+         String s = component.getName();
+         if(this.components.containsKey(s)) {
+            throw new IllegalStateException("Panel cannot contain more than one of the same component!");
+         }
+         if(s == null) {
+            throw new NullPointerException("Component ID cannot be null!");
+         }
+         component.init();
+         component.setOptionalRenderScreen(this.optionalRenderScreen);
+         this.components.put(s, component);
+      } catch (Exception var3) {
+         ;
+      }
+   }
+   public Component getComponentByID(String componentId) {
+      if(componentId == null) {
+         throw new NullPointerException("Component ID cannot be null!");
+      } else {
+         return (Component)this.components.get(componentId);
+      }
+   }
+   public void update(Panel parent, int mouseX, int mouseY, boolean dragging) {
+      double d0 = 120.0D / (double)Minecraft.getDebugFPS();
+      d0 = d0 * 2.5D;
+      int i = (int)((double)Wrapper.getInstance().mouse_wheel * ((double)Minecraft.getDebugFPS() / 120.0D));
+      if(this.isScrollable() && mouseX > this.x && mouseX < this.x + this.sizeX && mouseY > this.y && mouseY < this.y + this.sizeY) {
+         this.scrollableOffset += d0 * ((double)i / 120.0D);
+      }
+      if(Keyboard.isKeyDown(208)) {
+         this.scrollableOffset -= d0;
+      }
+      if(Keyboard.isKeyDown(200)) {
+         this.scrollableOffset += d0;
+      }
+      if(this.scrollableOffset < (double)(-8 * this.components.size())) {
+         this.scrollableOffset = (double)(-8 * this.components.size());
+      }
+      if(this.scrollableOffset > 0.0D) {
+         this.scrollableOffset = 0.0D;
+      }
+      for(Component component : this.components.values()) {
+         if(this.optionalRenderScreen != null && component.getOptionalRenderScreen() == null) {
+            component.setOptionalRenderScreen(this.optionalRenderScreen);
+         }
+         component.update(this, mouseX, mouseY, dragging);
+      }
+   }
+   public void render(GuiIngame gameRenderer, int x0, int y0) {
+// 
+      if(this.logger.isEnabledFor(Level.ERROR)) {
+         FormattingTuple ft = MessageFormatter.arrayFormat(format, argArray);
+         this.logger.log(FQCN, Level.ERROR, ft.getMessage(), ft.getThrowable());
+      }
+   }
+   public void error(String msg, Throwable t) {
+      this.logger.log(FQCN, Level.ERROR, msg, t);
+   }
+}
+package io.netty.util.internal.logging;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.netty.util.internal.logging.Log4JLogger;
+import org.apache.log4j.Logger;
+public class Log4JLoggerFactory extends InternalLoggerFactory {
+   public InternalLogger newInstance(String name) {
+      return new Log4JLogger(Logger.getLogger(name));
+   }
+}
+package io.netty.util.internal.logging;
+import io.netty.util.internal.logging.FormattingTuple;
+import java.util.HashMap;
+import java.util.Map;
+final class MessageFormatter {
+   static final char DELIM_START = '{';
+   static final char DELIM_STOP = '}';
+   static final String DELIM_STR = "{}";
+   private static final char ESCAPE_CHAR = '\\';
+   static FormattingTuple format(String messagePattern, Object arg) {
+      return arrayFormat(messagePattern, new Object[]{arg});
+   }
+   static FormattingTuple format(String messagePattern, Object argA, Object argB) {
+      return arrayFormat(messagePattern, new Object[]{argA, argB});
+   }
+   static Throwable getThrowableCandidate(Object[] argArray) {
+      if(argArray != null && argArray.length != 0) {
+         Object lastEntry = argArray[argArray.length - 1];
+         return lastEntry instanceof Throwable?(Throwable)lastEntry:null;
+      } else {
+         return null;
+      }
+   }
+   static FormattingTuple arrayFormat(String messagePattern, Object[] argArray) {
+      Throwable throwableCandidate = getThrowableCandidate(argArray);
+      if(messagePattern == null) {
+         return new FormattingTuple((String)null, argArray, throwableCandidate);
+      } else if(argArray == null) {
+         return new FormattingTuple(messagePattern);
+      } else {
+         int i = 0;
+         StringBuffer sbuf = new StringBuffer(messagePattern.length() + 50);
+         int L;
+         for(L = 0; L < argArray.length; ++L) {
+            int j = messagePattern.indexOf("{}", i);
+            if(j == -1) {
+               if(i == 0) {
+                  return new FormattingTuple(messagePattern, argArray, throwableCandidate);
+               }
+               sbuf.append(messagePattern.substring(i, messagePattern.length()));
+               return new FormattingTuple(sbuf.toString(), argArray, throwableCandidate);
+            }
+            if(isEscapedDelimeter(messagePattern, j)) {
+               if(!isDoubleEscaped(messagePattern, j)) {
+                  --L;
+                  sbuf.append(messagePattern.substring(i, j - 1));
+                  sbuf.append('{');
+                  i = j + 1;
+               } else {
+                  sbuf.append(messagePattern.substring(i, j - 1));
+                  deeplyAppendParameter(sbuf, argArray[L], new HashMap());
+                  i = j + 2;
+               }
+            } else {
+               sbuf.append(messagePattern.substring(i, j));
+               deeplyAppendParameter(sbuf, argArray[L], new HashMap());
+               i = j + 2;
+            }
+         }
+         sbuf.append(messagePattern.substring(i, messagePattern.length()));
+         if(L < argArray.length - 1) {
+            return new FormattingTuple(sbuf.toString(), argArray, throwableCandidate);
+         } else {
+            return new FormattingTuple(sbuf.toString(), argArray, (Throwable)null);
+         }
+      }
+   }
+   static boolean isEscapedDelimeter(String messagePattern, int delimeterStartIndex) {
+      return delimeterStartIndex == 0?false:messagePattern.charAt(delimeterStartIndex - 1) == 92;
+   }
+   static boolean isDoubleEscaped(String messagePattern, int delimeterStartIndex) {
+      return delimeterStartIndex >= 2 && messagePattern.charAt(delimeterStartIndex - 2) == 92;
+   }
+   private static void deeplyAppendParameter(StringBuffer sbuf, Object o, Map seenMap) {
+      if(o == null) {
+         sbuf.append("null");
+      } else {
+// 
+               for(int k = 0; k <= 1; ++k) {
+                  BlockPos blockpos = pos.add(i, k, j);
+                  if(worldIn.getBlockState(blockpos).getBlock() == Blocks.bookshelf) {
+                     if(!worldIn.isAirBlock(pos.add(i / 2, 0, j / 2))) {
+                        break;
+                     }
+                     worldIn.spawnParticle(EnumParticleTypes.ENCHANTMENT_TABLE, (double)pos.getX() + 0.5D, (double)pos.getY() + 2.0D, (double)pos.getZ() + 0.5D, (double)((float)i + rand.nextFloat()) - 0.5D, (double)((float)k - rand.nextFloat() - 1.0F), (double)((float)j + rand.nextFloat()) - 0.5D, new int[0]);
+                  }
+               }
+            }
+         }
+      }
+   }
+   public boolean isOpaqueCube() {
+      return false;
+   }
+   public int getRenderType() {
+      return 3;
+   }
+   public TileEntity createNewTileEntity(World worldIn, int meta) {
+      return new TileEntityEnchantmentTable();
+   }
+   public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumFacing side, float hitX, float hitY, float hitZ) {
+      if(worldIn.isRemote) {
+         return true;
+      } else {
+         TileEntity tileentity = worldIn.getTileEntity(pos);
+         if(tileentity instanceof TileEntityEnchantmentTable) {
+            playerIn.displayGui((TileEntityEnchantmentTable)tileentity);
+         }
+         return true;
+      }
+   }
+   public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
+      super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
+      if(stack.hasDisplayName()) {
+         TileEntity tileentity = worldIn.getTileEntity(pos);
+         if(tileentity instanceof TileEntityEnchantmentTable) {
+            ((TileEntityEnchantmentTable)tileentity).setCustomName(stack.getDisplayName());
+         }
+      }
+   }
+}
+package net.minecraft.block;
+import java.util.List;
+import java.util.Random;
+import net.minecraft.block.BlockContainer;
+import net.minecraft.block.material.MapColor;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
+import net.minecraft.item.Item;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityEndPortal;
+import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumParticleTypes;
+import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
+public class BlockEndPortal extends BlockContainer {
+   protected BlockEndPortal(Material materialIn) {
+      super(materialIn);
+      this.setLightLevel(1.0F);
+   }
+   public TileEntity createNewTileEntity(World worldIn, int meta) {
+      return new TileEntityEndPortal();
+   }
+   public void setBlockBoundsBasedOnState(IBlockAccess worldIn, BlockPos pos) {
+      float f = 0.0625F;
+      this.setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, f, 1.0F);
+   }
+   public boolean shouldSideBeRendered(IBlockAccess worldIn, BlockPos pos, EnumFacing side) {
+      return side == EnumFacing.DOWN?super.shouldSideBeRendered(worldIn, pos, side):false;
+   }
+   public void addCollisionBoxesToList(World worldIn, BlockPos pos, IBlockState state, AxisAlignedBB mask, List list, Entity collidingEntity) {
+   }
+   public boolean isOpaqueCube() {
+      return false;
+   }
+   public boolean isFullCube() {
+      return false;
+   }
+   public int quantityDropped(Random random) {
+      return 0;
+   }
+   public void onEntityCollidedWithBlock(World worldIn, BlockPos pos, IBlockState state, Entity entityIn) {
+      if(entityIn.ridingEntity == null && entityIn.riddenByEntity == null && !worldIn.isRemote) {
+         entityIn.travelToDimension(1);
+      }
+// 
+         this.dropBlockAsItem(worldIn, pos, worldIn.getBlockState(pos), 0);
+         worldIn.setBlockToAir(pos);
+      }
+   }
+   public boolean shouldSideBeRendered(IBlockAccess worldIn, BlockPos pos, EnumFacing side) {
+      return side == EnumFacing.UP?true:super.shouldSideBeRendered(worldIn, pos, side);
+   }
+   public IBlockState getStateFromMeta(int meta) {
+      return this.getDefaultState().withProperty(LAYERS, Integer.valueOf((meta & 7) + 1));
+   }
+   public boolean isReplaceable(World worldIn, BlockPos pos) {
+      return ((Integer)worldIn.getBlockState(pos).getValue(LAYERS)).intValue() == 1;
+   }
+   public int getMetaFromState(IBlockState state) {
+      return ((Integer)state.getValue(LAYERS)).intValue() - 1;
+   }
+   protected BlockState createBlockState() {
+      return new BlockState(this, new IProperty[]{LAYERS});
+   }
+}
+package net.minecraft.block;
+import java.util.Random;
+import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
+import net.minecraft.util.BlockPos;
+import net.minecraft.world.EnumSkyBlock;
+import net.minecraft.world.World;
+public class BlockSnowBlock extends Block {
+   protected BlockSnowBlock() {
+      super(Material.craftedSnow);
+      this.setTickRandomly(true);
+      this.setCreativeTab(CreativeTabs.tabBlock);
+   }
+   public Item getItemDropped(IBlockState state, Random rand, int fortune) {
+      return Items.snowball;
+   }
+   public int quantityDropped(Random random) {
+      return 4;
+   }
+   public void updateTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
+      if(worldIn.getLightFor(EnumSkyBlock.BLOCK, pos) > 11) {
+         this.dropBlockAsItem(worldIn, pos, worldIn.getBlockState(pos), 0);
+         worldIn.setBlockToAir(pos);
+      }
+   }
+}
+package net.minecraft.block;
+import net.minecraft.block.Block;
+import net.minecraft.block.material.MapColor;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
+import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.BlockPos;
+import net.minecraft.world.World;
+public class BlockSoulSand extends Block {
+   public BlockSoulSand() {
+      super(Material.sand, MapColor.brownColor);
+      this.setCreativeTab(CreativeTabs.tabBlock);
+   }
+   public AxisAlignedBB getCollisionBoundingBox(World worldIn, BlockPos pos, IBlockState state) {
+      float f = 0.125F;
+      return new AxisAlignedBB((double)pos.getX(), (double)pos.getY(), (double)pos.getZ(), (double)(pos.getX() + 1), (double)((float)(pos.getY() + 1) - f), (double)(pos.getZ() + 1));
+   }
+   public void onEntityCollidedWithBlock(World worldIn, BlockPos pos, IBlockState state, Entity entityIn) {
+      entityIn.motionX *= 0.4D;
+      entityIn.motionZ *= 0.4D;
+   }
+}
+package net.minecraft.block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.dispenser.IBlockSource;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.BlockPos;
+import net.minecraft.world.World;
+public class BlockSourceImpl implements IBlockSource {
+   private final World worldObj;
+   private final BlockPos pos;
+   public BlockSourceImpl(World worldIn, BlockPos posIn) {
+      this.worldObj = worldIn;
+      this.pos = posIn;
+   }
+   public World getWorld() {
+      return this.worldObj;
+   }
+   public double getX() {
+      return (double)this.pos.getX() + 0.5D;
+   }
+   public double getY() {
+      return (double)this.pos.getY() + 0.5D;

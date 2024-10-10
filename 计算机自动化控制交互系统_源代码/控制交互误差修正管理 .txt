@@ -1,0 +1,369 @@
+//控制交互误差修正管理 
+   private long hCTX;
+   private Controller[] controllers;
+   public WinTabContext(DummyWindow window) {
+      this.window = window;
+   }
+   public Controller[] getControllers() {
+      if(this.hCTX == 0L) {
+         throw new IllegalStateException("Context must be open before getting the controllers");
+      } else {
+         return this.controllers;
+      }
+   }
+   public synchronized void open() {
+      this.hCTX = nOpen(this.window.getHwnd());
+      List devices = new ArrayList();
+      int numSupportedDevices = nGetNumberOfSupportedDevices();
+      for(int i = 0; i < numSupportedDevices; ++i) {
+         WinTabDevice newDevice = WinTabDevice.createDevice(this, i);
+         if(newDevice != null) {
+            devices.add(newDevice);
+         }
+      }
+      this.controllers = (Controller[])((Controller[])devices.toArray(new Controller[0]));
+   }
+   public synchronized void close() {
+      nClose(this.hCTX);
+   }
+   public synchronized void processEvents() {
+      WinTabPacket[] packets = nGetPackets(this.hCTX);
+      for(int i = 0; i < packets.length; ++i) {
+         ((WinTabDevice)((WinTabDevice)this.getControllers()[0])).processPacket(packets[i]);
+      }
+   }
+   private static final native int nGetNumberOfSupportedDevices();
+   private static final native long nOpen(long var0);
+   private static final native void nClose(long var0);
+   private static final native WinTabPacket[] nGetPackets(long var0);
+}
+package net.java.games.input;
+import net.java.games.input.Component;
+import net.java.games.input.Event;
+import net.java.games.input.WinTabComponent;
+import net.java.games.input.WinTabContext;
+import net.java.games.input.WinTabPacket;
+public class WinTabCursorComponent extends WinTabComponent {
+   private int index;
+   protected WinTabCursorComponent(WinTabContext context, int parentDevice, String name, Component.Identifier id, int index) {
+      super(context, parentDevice, name, id);
+      this.index = index;
+   }
+   public Event processPacket(WinTabPacket packet) {
+      Event newEvent = null;
+      if(packet.PK_CURSOR == this.index && this.lastKnownValue == 0.0F) {
+         this.lastKnownValue = 1.0F;
+         newEvent = new Event();
+         newEvent.set(this, this.lastKnownValue, packet.PK_TIME * 1000L);
+      } else if(packet.PK_CURSOR != this.index && this.lastKnownValue == 1.0F) {
+         this.lastKnownValue = 0.0F;
+         newEvent = new Event();
+         newEvent.set(this, this.lastKnownValue, packet.PK_TIME * 1000L);
+      }
+      return newEvent;
+   }
+}
+package net.java.games.input;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import net.java.games.input.AbstractController;
+import net.java.games.input.Component;
+import net.java.games.input.Controller;
+import net.java.games.input.Event;
+import net.java.games.input.Rumbler;
+import net.java.games.input.WinTabComponent;
+import net.java.games.input.WinTabContext;
+import net.java.games.input.WinTabEnvironmentPlugin;
+import net.java.games.input.WinTabPacket;
+public class WinTabDevice extends AbstractController {
+   private WinTabContext context;
+   private List eventList = new ArrayList();
+   private WinTabDevice(WinTabContext context, int index, String name, Component[] components) {
+      super(name, components, new Controller[0], new Rumbler[0]);
+      this.context = context;
+   }
+   protected boolean getNextDeviceEvent(Event event) throws IOException {
+      if(this.eventList.size() > 0) {
+         Event ourEvent = (Event)this.eventList.remove(0);
+         event.set(ourEvent);
+         return true;
+      } else {
+         return false;
+      }
+   }
+   protected void pollDevice() throws IOException {
+      this.context.processEvents();
+      super.pollDevice();
+// 
+         id = Component.Identifier.Axis.RY;
+         components.add(new WinTabComponent(context, parentDevice, id.getName(), id, axisRanges[2], axisRanges[3]));
+         id = Component.Identifier.Axis.RZ;
+         components.add(new WinTabComponent(context, parentDevice, id.getName(), id, axisRanges[4], axisRanges[5]));
+      }
+      return components;
+   }
+   public static Collection createButtons(WinTabContext context, int deviceIndex, int numberOfButtons) {
+      List buttons = new ArrayList();
+      for(int i = 0; i < numberOfButtons; ++i) {
+         try {
+            Class buttonIdClass = Component.Identifier.Button.class;
+            Field idField = buttonIdClass.getField("_" + i);
+            Component.Identifier id = (Component.Identifier)idField.get((Object)null);
+            buttons.add(new WinTabButtonComponent(context, deviceIndex, id.getName(), id, i));
+         } catch (SecurityException var8) {
+            var8.printStackTrace();
+         } catch (NoSuchFieldException var9) {
+            var9.printStackTrace();
+         } catch (IllegalArgumentException var10) {
+            var10.printStackTrace();
+         } catch (IllegalAccessException var11) {
+            var11.printStackTrace();
+         }
+      }
+      return buttons;
+   }
+   public Event processPacket(WinTabPacket packet) {
+      float newValue = this.lastKnownValue;
+      if(this.getIdentifier() == Component.Identifier.Axis.X) {
+         newValue = this.normalise((float)packet.PK_X);
+      }
+      if(this.getIdentifier() == Component.Identifier.Axis.Y) {
+         newValue = this.normalise((float)packet.PK_Y);
+      }
+      if(this.getIdentifier() == Component.Identifier.Axis.Z) {
+         newValue = this.normalise((float)packet.PK_Z);
+      }
+      if(this.getIdentifier() == Component.Identifier.Axis.X_FORCE) {
+         newValue = this.normalise((float)packet.PK_NORMAL_PRESSURE);
+      }
+      if(this.getIdentifier() == Component.Identifier.Axis.Y_FORCE) {
+         newValue = this.normalise((float)packet.PK_TANGENT_PRESSURE);
+      }
+      if(this.getIdentifier() == Component.Identifier.Axis.RX) {
+         newValue = this.normalise((float)packet.PK_ORIENTATION_ALT);
+      }
+      if(this.getIdentifier() == Component.Identifier.Axis.RY) {
+         newValue = this.normalise((float)packet.PK_ORIENTATION_AZ);
+      }
+      if(this.getIdentifier() == Component.Identifier.Axis.RZ) {
+         newValue = this.normalise((float)packet.PK_ORIENTATION_TWIST);
+      }
+      if(newValue != this.getPollData()) {
+         this.lastKnownValue = newValue;
+         Event newEvent = new Event();
+         newEvent.set(this, newValue, packet.PK_TIME * 1000L);
+         return newEvent;
+      } else {
+         return null;
+      }
+   }
+   private float normalise(float value) {
+      if(this.max == this.min) {
+         return value;
+      } else {
+         float bottom = (float)(this.max - this.min);
+         return (value - (float)this.min) / bottom;
+      }
+   }
+   public static Collection createCursors(WinTabContext context, int deviceIndex, String[] cursorNames) {
+      List cursors = new ArrayList();
+      for(int i = 0; i < cursorNames.length; ++i) {
+         Component.Identifier id;
+         if(cursorNames[i].matches("Puck")) {
+            id = Component.Identifier.Button.TOOL_FINGER;
+         } else if(cursorNames[i].matches("Eraser.*")) {
+            id = Component.Identifier.Button.TOOL_RUBBER;
+         } else {
+            id = Component.Identifier.Button.TOOL_PEN;
+         }
+         cursors.add(new WinTabCursorComponent(context, deviceIndex, id.getName(), id, i));
+      }
+      return cursors;
+   }
+}
+package net.java.games.input;
+import java.util.ArrayList;
+import java.util.List;
+import net.java.games.input.Controller;
+import net.java.games.input.DummyWindow;
+import net.java.games.input.WinTabDevice;
+import net.java.games.input.WinTabPacket;
+public class WinTabContext {
+// 
+   private transient SimpleDateFormat timestampFormat;
+   private static String toTitleCase(String givenString) {
+      String[] astring = givenString.split(" ");
+      StringBuilder stringbuilder = new StringBuilder();
+      for(String s : astring) {
+         stringbuilder.append(Character.toUpperCase(s.charAt(0))).append(s.substring(1)).append(" ");
+      }
+      return stringbuilder.toString().trim();
+   }
+   public Chat() {
+      super("Chat");
+      this.iconDimension = new ImageDimension(92, 82);
+   }
+   public void init() {
+      this.registerEvent(EventType.MOTION_UPDATE);
+      this.registerEvent(EventType.CHAT_RECEIVED);
+      this.setFontOffset(0.034D);
+      if(this.timeStampType != Chat.TimeStampType.NONE) {
+         this.timestampFormat = new SimpleDateFormat(this.timeStamp24h.isTrue()?this.timeStampType.format24:this.timeStampType.format12);
+      }
+      super.init();
+   }
+   public void createCogMenu() {
+      SlideoutGUI slideoutgui = Wrapper.getInstance().getActiveModProfile().getSlideoutAccess().getSlideoutInstance();
+      this.slideCogMenu = new SlidePage(this.getName() + "_cog", slideoutgui.getSlideoutWidth(), slideoutgui.getSlideoutHeight());
+      this.slideCogMenu.addElement(new Padding(slideoutgui.getSlideoutWidth() - 25, 6));
+      this.slideCogMenu.addElement(new Label(this.getName(), -1, 16, BadlionFontRenderer.FontType.TITLE, false));
+      this.slideCogMenu.addElement(new Padding(slideoutgui.getSlideoutWidth() - 25, 6));
+      this.slideCogMenu.addElement(new Label("Settings", -7894388, 12, BadlionFontRenderer.FontType.TITLE, true));
+      this.slideCogMenu.addElement(this.textShadow = new TextButton("Text Shadow", this.textBackgroundShadow, 1.0D));
+      this.textShadow.setToolTipText("Turn off/on text shadow. Can increase FPS if there is a lot of chat visible.");
+      this.slideCogMenu.addElement(this.timeStampButton = new TextButton("24 Hour format", this.timeStamp24h, 1.0D));
+      this.slideCogMenu.addElement(new TextButton("Bold format", this.timeStampBold, 1.0D));
+      this.slideCogMenu.addElement(new ColorPicker("Back Color", this.chatBackgroundColor, 0.13D, true));
+      this.slideCogMenu.addElement(new TextButton("Anti Spam", this.antiSpam, 1.0D));
+      String[] astring = new String[Chat.TimeStampType.values().length];
+      astring[0] = "None";
+      for(int i = 1; i < astring.length; ++i) {
+         astring[i] = Chat.TimeStampType.values()[i].getPreview(this.timeStamp24h.isTrue());
+      }
+      this.slideCogMenu.addElement(this.timeStampDropdown = new Dropdown(astring, this.timeStampType.ordinal(), 0.19D));
+      astring = new String[Chat.MCColor.values().length];
+      int j = 0;
+      Chat.MCColor[] var7;
+      for(Chat.MCColor chat$mccolor : var7 = Chat.MCColor.values()) {
+         astring[j++] = chat$mccolor.getDisplayName();
+      }
+      this.slideCogMenu.addElement(this.timeStampColorDropdown = new Dropdown(astring, this.timeStampColor.ordinal(), 0.19D));
+      this.chatBackgroundColor.init();
+      super.createCogMenu();
+   }
+   public void onEvent(Event e) {
+      if(e instanceof MotionUpdate) {
+         Chat.TimeStampType chat$timestamptype = this.timeStampType;
+         this.timeStampType = Chat.TimeStampType.values()[this.timeStampDropdown.getValueIndex()];
+         if(chat$timestamptype != this.timeStampType) {
+            this.updateFormat();
+         }
+         this.timeStampColor = Chat.MCColor.values()[this.timeStampColorDropdown.getValueIndex()];
+      }
+      if(e instanceof GUIClickMouse && ((GUIClickMouse)e).getMouseButton() == 0) {
+         int j = Wrapper.getInstance().getMouseX();
+         int i = Wrapper.getInstance().getMouseY();
+         if(j > this.timeStampButton.getX() && (double)j < (double)this.timeStampButton.getX() + (double)this.timeStampButton.getWidth() * this.timeStampButton.getScale() && i > this.timeStampButton.getY() && (double)i < (double)this.timeStampButton.getY() + (double)this.timeStampButton.getHeight() * this.timeStampButton.getScale() && this.timeStampButton.isToggleable()) {
+            this.updateFormat(this.timeStamp24h.isFalse());
+            this.updateDropdown();
+         }
+      }
+      if(e instanceof ChatReceivedEvent && this.antiSpam.isTrue()) {
+         this.checkSpam((ChatReceivedEvent)e);
+      }
+      super.onEvent(e);
+   }
+   public void reset() {
+      this.offsetX = 0;
+      this.offsetY = 0;
+      this.textShadow.setEnabled(true);
+      this.chatBackgroundColor = new ModColor(2130706432);
+      this.timeStamp24h.setValue(true);
+// 
+   private static final Function MAP_ENTRY_TO_STRING = new Function() {
+      public String apply(Entry p_apply_1_) {
+         if(p_apply_1_ == null) {
+            return "<NULL>";
+         } else {
+            IProperty iproperty = (IProperty)p_apply_1_.getKey();
+            return iproperty.getName() + "=" + iproperty.getName((Comparable)p_apply_1_.getValue());
+         }
+      }
+   };
+   public IBlockState cycleProperty(IProperty property) {
+      return this.withProperty(property, (Comparable)cyclePropertyValue(property.getAllowedValues(), this.getValue(property)));
+   }
+   protected static Object cyclePropertyValue(Collection values, Object currentValue) {
+      Iterator<T> iterator = values.iterator();
+      while(iterator.hasNext()) {
+         if(iterator.next().equals(currentValue)) {
+            if(iterator.hasNext()) {
+               return iterator.next();
+            }
+            return values.iterator().next();
+         }
+      }
+      return iterator.next();
+   }
+   public String toString() {
+      StringBuilder stringbuilder = new StringBuilder();
+      stringbuilder.append(Block.blockRegistry.getNameForObject(this.getBlock()));
+      if(!this.getProperties().isEmpty()) {
+         stringbuilder.append("[");
+         COMMA_JOINER.appendTo(stringbuilder, Iterables.transform(this.getProperties().entrySet(), MAP_ENTRY_TO_STRING));
+         stringbuilder.append("]");
+      }
+      return stringbuilder.toString();
+   }
+}
+package net.minecraft.block.state;
+import com.google.common.base.Predicate;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.BlockPos;
+import net.minecraft.world.World;
+public class BlockWorldState {
+   private final World world;
+   private final BlockPos pos;
+   private final boolean field_181628_c;
+   private IBlockState state;
+   private TileEntity tileEntity;
+   private boolean tileEntityInitialized;
+   public BlockWorldState(World p_i46451_1_, BlockPos p_i46451_2_, boolean p_i46451_3_) {
+      this.world = p_i46451_1_;
+      this.pos = p_i46451_2_;
+      this.field_181628_c = p_i46451_3_;
+   }
+   public IBlockState getBlockState() {
+      if(this.state == null && (this.field_181628_c || this.world.isBlockLoaded(this.pos))) {
+         this.state = this.world.getBlockState(this.pos);
+      }
+      return this.state;
+   }
+   public TileEntity getTileEntity() {
+      if(this.tileEntity == null && !this.tileEntityInitialized) {
+         this.tileEntity = this.world.getTileEntity(this.pos);
+         this.tileEntityInitialized = true;
+      }
+      return this.tileEntity;
+   }
+   public BlockPos getPos() {
+      return this.pos;
+   }
+   public static Predicate hasState(final Predicate p_177510_0_) {
+      return new Predicate() {
+         public boolean apply(BlockWorldState p_apply_1_) {
+            return p_apply_1_ != null && p_177510_0_.apply(p_apply_1_.getBlockState());
+         }
+      };
+   }
+}
+package net.minecraft.block.state;
+import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
+import net.minecraft.block.Block;
+import net.minecraft.block.properties.IProperty;
+public interface IBlockState {
+   Collection getPropertyNames();
+   Comparable getValue(IProperty var1);
+   IBlockState withProperty(IProperty var1, Comparable var2);
+   IBlockState cycleProperty(IProperty var1);
+   ImmutableMap getProperties();
+   Block getBlock();
+}
+package net.minecraft.block.state.pattern;
+import com.google.common.base.Predicate;
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+public class BlockHelper implements Predicate {

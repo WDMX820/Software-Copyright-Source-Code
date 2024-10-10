@@ -1,0 +1,409 @@
+// 控制交互测试方法管理
+package net.minecraft.block;
+
+// 导入所需的Minecraft类
+import net.minecraft.block.BlockDispenser;
+import net.minecraft.block.BlockSourceImpl;
+import net.minecraft.dispenser.BehaviorDefaultDispenseItem;
+import net.minecraft.dispenser.IBehaviorDispenseItem;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityDispenser;
+import net.minecraft.tileentity.TileEntityDropper;
+import net.minecraft.tileentity.TileEntityHopper;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.world.World;
+
+// 代表掉落器块的类，继承自BlockDispenser
+public class BlockDropper extends BlockDispenser {
+   // 定义默认的物品发射行为
+   private final IBehaviorDispenseItem dropBehavior = new BehaviorDefaultDispenseItem();
+
+   // 返回掉落器的行为
+   protected IBehaviorDispenseItem getBehavior(ItemStack stack) {
+      return this.dropBehavior;
+   }
+
+   // 创建新的掉落器TileEntity
+   public TileEntity createNewTileEntity(World worldIn, int meta) {
+      return new TileEntityDropper();
+   }
+
+   // 发射物品的方法
+   protected void dispense(World worldIn, BlockPos pos) {
+      BlockSourceImpl blocksourceimpl = new BlockSourceImpl(worldIn, pos);
+      TileEntityDispenser tileentitydispenser = (TileEntityDispenser)blocksourceimpl.getBlockTileEntity();
+
+      // 检查掉落器的TileEntity是否存在
+      if(tileentitydispenser != null) {
+         int i = tileentitydispenser.getDispenseSlot(); // 获取待发射的物品槽索引
+         if(i < 0) {
+            // 如果没有有效的物品槽，播放一个音效
+            worldIn.playAuxSFX(1001, pos, 0);
+         } else {
+            ItemStack itemstack = tileentitydispenser.getStackInSlot(i); // 从槽中获取物品
+            if(itemstack != null) {
+               EnumFacing enumfacing = (EnumFacing)worldIn.getBlockState(pos).getValue(FACING); // 获取掉落方向
+               BlockPos blockpos = pos.offset(enumfacing); // 计算目标位置
+               IInventory iinventory = TileEntityHopper.getInventoryAtPosition(worldIn, (double)blockpos.getX(), (double)blockpos.getY(), (double)blockpos.getZ()); // 获取指定位置的库存
+               ItemStack itemstack1;
+
+               if(iinventory == null) {
+                  // 如果目标位置没有库存，使用默认的发射行为
+                  itemstack1 = this.dropBehavior.dispense(blocksourceimpl, itemstack);
+                  if(itemstack1 != null && itemstack1.stackSize <= 0) {
+                     itemstack1 = null; // 清空物品
+                  }
+               } else {
+                  // 如果目标位置有库存，将物品放入库存
+                  itemstack1 = TileEntityHopper.putStackInInventoryAllSlots(iinventory, itemstack.copy().splitStack(1), enumfacing.getOpposite());
+                  if(itemstack1 == null) {
+                     itemstack1 = itemstack.copy();
+                     if(--itemstack1.stackSize <= 0) {
+                        itemstack1 = null; // 清空物品
+                     }
+                  } else {
+                     itemstack1 = itemstack.copy(); // 保留物品
+                  }
+               }
+               tileentitydispenser.setInventorySlotContents(i, itemstack1); // 更新掉落器的物品槽
+            }
+         }
+      }
+   }
+}
+
+// 动态液体块的类
+package net.minecraft.block;
+
+// 其他必要导入
+import java.util.EnumSet;
+import java.util.Random;
+import java.util.Set;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.world.World;
+
+// 代表动态液体的类，继承自BlockLiquid
+public class BlockDynamicLiquid extends BlockLiquid {
+   int adjacentSourceBlocks; // 存储相邻的源块数量
+
+   // 构造函数，初始化材料类型
+   protected BlockDynamicLiquid(Material materialIn) {
+      super(materialIn);
+   }
+
+   // 将动态液体块转变为静态状态的方法
+   private void placeStaticBlock(World worldIn, BlockPos pos, IBlockState currentState) {
+      worldIn.setBlockState(pos, getStaticBlock(this.blockMaterial).getDefaultState().withProperty(LEVEL, (Integer)currentState.getValue(LEVEL)), 2);
+   }
+
+   // 更新液体状态的方法
+   public void updateTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
+      int i = ((Integer)state.getValue(LEVEL)).intValue(); // 获取当前液体级别
+      int j = 1; // 初始化j的值
+      if(this.blockMaterial == Material.lava && !worldIn.provider.doesWaterVaporize()) {
+         j = 2; // 如果是岩浆且不蒸发，设置j为2
+      }
+      int k = this.tickRate(worldIn); // 获取更新速率
+      if(i > 0) {
+         int l = -100; // 初始化l的值
+         this.adjacentSourceBlocks = 0; // 重置相邻源块计数
+         // 检查水平相邻的块
+         for(EnumFacing enumfacing : EnumFacing.Plane.HORIZONTAL) {
+            l = this.checkAdjacentBlock(worldIn, pos.offset(enumfacing), l);
+         }
+         // 处理解压异常（错误处理）
+         throw new LZ4Exception("Error decoding offset " + (srcOff - result) + " of input buffer");
+      } else {
+         return result; // 返回结果
+      }
+   }
+
+   // 解压方法
+   public int decompress(ByteBuffer src, int srcOff, ByteBuffer dest, int destOff, int destLen) {
+      ByteBufferUtils.checkNotReadOnly(dest);
+      ByteBufferUtils.checkRange(src, srcOff);
+      ByteBufferUtils.checkRange(dest, destOff, destLen);
+      byte[] srcArr = null;
+      byte[] destArr = null;
+      ByteBuffer srcBuf = null;
+      ByteBuffer destBuf = null;
+
+      // 处理源和目标缓冲区
+      if(src.hasArray()) {
+         srcArr = src.array();
+      } else if(src.isDirect()) {
+         srcBuf = src;
+      }
+      if(dest.hasArray()) {
+         destArr = dest.array();
+      } else if(dest.isDirect()) {
+         destBuf = dest;
+      }
+
+      // 解压数据的逻辑
+      if((srcArr != null || srcBuf != null) && (destArr != null || destBuf != null)) {
+         int result = LZ4JNI.LZ4_decompress_fast(srcArr, srcBuf, srcOff, destArr, destBuf, destOff, destLen);
+         if(result < 0) {
+            throw new LZ4Exception("Error decoding offset " + (srcOff - result) + " of input buffer");
+         } else {
+            return result; // 返回解压结果
+         }
+      } else {
+         LZ4FastDecompressor safeInstance = SAFE_INSTANCE;
+         if(safeInstance == null) {
+            safeInstance = SAFE_INSTANCE = LZ4Factory.safeInstance().fastDecompressor();
+         }
+         return safeInstance.decompress(src, srcOff, dest, destOff, destLen); // 返回解压后的数据
+      }
+   }
+}
+
+
+package net.jpountz.lz4;
+import java.nio.ByteBuffer;
+import net.jpountz.lz4.LZ4Exception;
+import net.jpountz.lz4.LZ4Factory;
+import net.jpountz.lz4.LZ4JNI;
+import net.jpountz.lz4.LZ4SafeDecompressor;
+import net.jpountz.util.ByteBufferUtils;
+import net.jpountz.util.SafeUtils;
+final class LZ4JNISafeDecompressor extends LZ4SafeDecompressor {
+   public static final LZ4JNISafeDecompressor INSTANCE = new LZ4JNISafeDecompressor();
+   private static LZ4SafeDecompressor SAFE_INSTANCE;
+   public final int decompress(byte[] src, int srcOff, int srcLen, byte[] dest, int destOff, int maxDestLen) {
+      SafeUtils.checkRange(src, srcOff, srcLen);
+      SafeUtils.checkRange(dest, destOff, maxDestLen);
+      int result = LZ4JNI.LZ4_decompress_safe(src, (ByteBuffer)null, srcOff, srcLen, dest, (ByteBuffer)null, destOff, maxDestLen);
+      if(result < 0) {
+         throw new LZ4Exception("Error decoding offset " + (srcOff - result) + " of input buffer");
+      } else {
+         return result;
+      }
+   }
+   public int decompress(ByteBuffer src, int srcOff, int srcLen, ByteBuffer dest, int destOff, int maxDestLen) {
+      ByteBufferUtils.checkNotReadOnly(dest);
+      ByteBufferUtils.checkRange(src, srcOff, srcLen);
+      ByteBufferUtils.checkRange(dest, destOff, maxDestLen);
+      byte[] srcArr = null;
+      byte[] destArr = null;
+      ByteBuffer srcBuf = null;
+      ByteBuffer destBuf = null;
+      if(src.hasArray()) {
+         srcArr = src.array();
+      } else if(src.isDirect()) {
+         srcBuf = src;
+      }
+      if(dest.hasArray()) {
+         destArr = dest.array();
+      } else if(dest.isDirect()) {
+         destBuf = dest;
+      }
+      if((srcArr != null || srcBuf != null) && (destArr != null || destBuf != null)) {
+         int result = LZ4JNI.LZ4_decompress_safe(srcArr, srcBuf, srcOff, srcLen, destArr, destBuf, destOff, maxDestLen);
+         if(result < 0) {
+            throw new LZ4Exception("Error decoding offset " + (srcOff - result) + " of input buffer");
+         } else {
+            return result;
+         }
+      } else {
+         LZ4SafeDecompressor safeInstance = SAFE_INSTANCE;
+         if(safeInstance == null) {
+            safeInstance = SAFE_INSTANCE = LZ4Factory.safeInstance().safeDecompressor();
+         }
+// 
+         this.focused = false;
+      }
+      if(keyCode == 14 && this.text.length() > 0) {
+         this.text = this.text.substring(0, this.text.length() - 1);
+      }
+      String s = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
+      if(s.contains(String.valueOf(character))) {
+         this.text = this.text + character;
+      }
+   }
+   public void render() {
+      Minecraft minecraft = Minecraft.getMinecraft();
+      GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+      minecraft.getTextureManager().bindTexture(searchBorder);
+      int i = (int)(1100.0D * this.scale);
+      int j = (int)(90.0D * this.scale);
+      int k = (int)(54.0D * this.scale);
+      int l = (int)(54.0D * this.scale);
+      if(this.results == 0 && this.text != null && this.text.length() > 0) {
+         GL11.glColor4f(1.0F, 0.0F, 0.0F, 1.0F);
+      }
+      Gui.drawModalRectWithCustomSizedTexture(this.getX(), this.getY(), (float)i, (float)j, i, j, (float)i, (float)j);
+      minecraft.getTextureManager().bindTexture(this.searchIcon);
+      int i1 = 13;
+      int j1 = 2;
+      int k1 = 4;
+      int l1 = 3;
+      double d0 = 0.65D;
+      Gui.drawModalRectWithCustomSizedTexture(this.getX() + k1, this.getY() + l1, (float)k, (float)l, k, l, (float)k, (float)l);
+      String s = this.text;
+      if(this.focused && this.timer >= 55) {
+         s = s + "_";
+      }
+      if(this.text.length() < 1 && !this.focused) {
+         s = "Search";
+      }
+      GL11.glScaled(d0, d0, d0);
+      this.fontRenderer.drawString(s, (int)((double)(this.getX() + i1) / d0), (int)((double)(this.getY() + j1) / d0), -8355712);
+      GL11.glScaled(1.0D / d0, 1.0D / d0, 1.0D / d0);
+   }
+   public int getWidth() {
+      return (int)(1250.0D * this.scale);
+   }
+   public int getHeight() {
+      return (int)(90.0D * this.scale);
+   }
+   public void update(int mouseX, int mouseY) {
+      if(this.timer++ > 110) {
+         this.timer = 0;
+      }
+      if(this.timer % 5 == 0) {
+         if(Keyboard.isCreated() && Keyboard.isKeyDown(14)) {
+            if(this.backspace++ > 7 && this.text.length() > 0) {
+               this.text = this.text.substring(0, this.text.length() - 1);
+            }
+         } else {
+            this.backspace = 0;
+         }
+      }
+   }
+   public boolean onClick(int mouseButton) {
+      if(mouseButton == 0) {
+         Minecraft minecraft = Minecraft.getMinecraft();
+         int i = Wrapper.getInstance().getMouseX();
+         int j = Wrapper.getInstance().getMouseY();
+         this.focused = false;
+         if(i > this.getX() && i < this.getX() + (this.getWidth() - 50) && j > this.getY() && j < this.getY() + this.getHeight()) {
+            this.focused = true;
+            return true;
+         }
+      }
+      return false;
+   }
+   public double getScale() {
+      return this.scale;
+   }
+   public String getText() {
+      return this.text;
+   }
+   public void setText(String text) {
+      this.text = text;
+   }
+   public void setResults(int results) {
+      this.results = results;
+   }
+}
+package net.badlion.client.gui.slideout;
+import java.util.ArrayList;
+import java.util.List;
+import net.badlion.client.Wrapper;
+import net.badlion.client.gui.slideout.SlideoutGUI;
+import net.badlion.client.gui.slideout.elements.ColorPicker;
+import net.badlion.client.gui.slideout.elements.ToggleButton;
+import net.badlion.client.gui.slideout.fontrenderer.CustomFontRenderer;
+import net.minecraft.client.Minecraft;
+// 
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.StatCollector;
+import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
+public class BlockBanner extends BlockContainer {
+   public static final PropertyDirection FACING = PropertyDirection.create("facing", (Predicate)EnumFacing.Plane.HORIZONTAL);
+   public static final PropertyInteger ROTATION = PropertyInteger.create("rotation", 0, 15);
+   protected BlockBanner() {
+      super(Material.wood);
+      float f = 0.25F;
+      float f1 = 1.0F;
+      this.setBlockBounds(0.5F - f, 0.0F, 0.5F - f, 0.5F + f, f1, 0.5F + f);
+   }
+   public String getLocalizedName() {
+      return StatCollector.translateToLocal("item.banner.white.name");
+   }
+   public AxisAlignedBB getCollisionBoundingBox(World worldIn, BlockPos pos, IBlockState state) {
+      return null;
+   }
+   public AxisAlignedBB getSelectedBoundingBox(World worldIn, BlockPos pos) {
+      this.setBlockBoundsBasedOnState(worldIn, pos);
+      return super.getSelectedBoundingBox(worldIn, pos);
+   }
+   public boolean isFullCube() {
+      return false;
+   }
+   public boolean isPassable(IBlockAccess worldIn, BlockPos pos) {
+      return true;
+   }
+   public boolean isOpaqueCube() {
+      return false;
+   }
+   public boolean func_181623_g() {
+      return true;
+   }
+   public TileEntity createNewTileEntity(World worldIn, int meta) {
+      return new TileEntityBanner();
+   }
+   public Item getItemDropped(IBlockState state, Random rand, int fortune) {
+      return Items.banner;
+   }
+   public Item getItem(World worldIn, BlockPos pos) {
+      return Items.banner;
+   }
+   public void dropBlockAsItemWithChance(World worldIn, BlockPos pos, IBlockState state, float chance, int fortune) {
+      TileEntity tileentity = worldIn.getTileEntity(pos);
+      if(tileentity instanceof TileEntityBanner) {
+         ItemStack itemstack = new ItemStack(Items.banner, 1, ((TileEntityBanner)tileentity).getBaseColor());
+         NBTTagCompound nbttagcompound = new NBTTagCompound();
+         tileentity.writeToNBT(nbttagcompound);
+         nbttagcompound.removeTag("x");
+         nbttagcompound.removeTag("y");
+         nbttagcompound.removeTag("z");
+         nbttagcompound.removeTag("id");
+         itemstack.setTagInfo("BlockEntityTag", nbttagcompound);
+         spawnAsEntity(worldIn, pos, itemstack);
+      } else {
+         super.dropBlockAsItemWithChance(worldIn, pos, state, chance, fortune);
+      }
+   }
+   public boolean canPlaceBlockAt(World worldIn, BlockPos pos) {
+      return !this.func_181087_e(worldIn, pos) && super.canPlaceBlockAt(worldIn, pos);
+   }
+   public void harvestBlock(World worldIn, EntityPlayer player, BlockPos pos, IBlockState state, TileEntity te) {
+      if(te instanceof TileEntityBanner) {
+         TileEntityBanner tileentitybanner = (TileEntityBanner)te;
+         ItemStack itemstack = new ItemStack(Items.banner, 1, ((TileEntityBanner)te).getBaseColor());
+         NBTTagCompound nbttagcompound = new NBTTagCompound();
+         TileEntityBanner.func_181020_a(nbttagcompound, tileentitybanner.getBaseColor(), tileentitybanner.func_181021_d());
+         itemstack.setTagInfo("BlockEntityTag", nbttagcompound);
+         spawnAsEntity(worldIn, pos, itemstack);
+      } else {
+         super.harvestBlock(worldIn, player, pos, state, (TileEntity)null);
+      }
+   }
+   public static class BlockBannerHanging extends BlockBanner {
+      private static int[] $SWITCH_TABLE$net$minecraft$util$EnumFacing;
+      public BlockBannerHanging() {
+         this.setDefaultState(this.blockState.getBaseState().withProperty(FACING, EnumFacing.NORTH));
+      }
+      public void setBlockBoundsBasedOnState(IBlockAccess worldIn, BlockPos pos) {
+         EnumFacing enumfacing = (EnumFacing)worldIn.getBlockState(pos).getValue(FACING);
+         float f = 0.0F;
+         float f1 = 0.78125F;
+         float f2 = 0.0F;
+         float f3 = 1.0F;
+         float f4 = 0.125F;
+         this.setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 1.0F);
+         switch($SWITCH_TABLE$net$minecraft$util$EnumFacing()[enumfacing.ordinal()]) {
+         case 3:
+         default:

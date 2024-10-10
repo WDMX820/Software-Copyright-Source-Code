@@ -1,0 +1,853 @@
+//控制交互测试报告管理 
+      }
+   }
+   public boolean canPlaceBlockAt(World worldIn, BlockPos pos) {
+      int i = 0;
+      BlockPos blockpos = pos.west();
+      BlockPos blockpos1 = pos.east();
+      BlockPos blockpos2 = pos.north();
+      BlockPos blockpos3 = pos.south();
+      if(worldIn.getBlockState(blockpos).getBlock() == this) {
+         if(this.isDoubleChest(worldIn, blockpos)) {
+            return false;
+         }
+         ++i;
+      }
+      if(worldIn.getBlockState(blockpos1).getBlock() == this) {
+         if(this.isDoubleChest(worldIn, blockpos1)) {
+            return false;
+         }
+         ++i;
+      }
+      if(worldIn.getBlockState(blockpos2).getBlock() == this) {
+         if(this.isDoubleChest(worldIn, blockpos2)) {
+            return false;
+         }
+         ++i;
+      }
+      if(worldIn.getBlockState(blockpos3).getBlock() == this) {
+         if(this.isDoubleChest(worldIn, blockpos3)) {
+            return false;
+         }
+         ++i;
+      }
+      return i <= 1;
+   }
+   private boolean isDoubleChest(World worldIn, BlockPos pos) {
+      if(worldIn.getBlockState(pos).getBlock() != this) {
+         return false;
+      } else {
+         for(EnumFacing enumfacing : EnumFacing.Plane.HORIZONTAL) {
+            if(worldIn.getBlockState(pos.offset(enumfacing)).getBlock() == this) {
+               return true;
+            }
+         }
+         return false;
+      }
+   }
+   public void onNeighborBlockChange(World worldIn, BlockPos pos, IBlockState state, Block neighborBlock) {
+      super.onNeighborBlockChange(worldIn, pos, state, neighborBlock);
+      TileEntity tileentity = worldIn.getTileEntity(pos);
+      if(tileentity instanceof TileEntityChest) {
+         tileentity.updateContainingBlockInfo();
+      }
+   }
+   public void breakBlock(World worldIn, BlockPos pos, IBlockState state) {
+      TileEntity tileentity = worldIn.getTileEntity(pos);
+      if(tileentity instanceof IInventory) {
+         InventoryHelper.dropInventoryItems(worldIn, pos, (IInventory)tileentity);
+         worldIn.updateComparatorOutputLevel(pos, this);
+      }
+      super.breakBlock(worldIn, pos, state);
+   }
+   public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumFacing side, float hitX, float hitY, float hitZ) {
+      if(worldIn.isRemote) {
+         return true;
+      } else {
+         ILockableContainer ilockablecontainer = this.getLockableContainer(worldIn, pos);
+         if(ilockablecontainer != null) {
+            playerIn.displayGUIChest(ilockablecontainer);
+            if(this.chestType == 0) {
+               playerIn.triggerAchievement(StatList.field_181723_aa);
+            } else if(this.chestType == 1) {
+               playerIn.triggerAchievement(StatList.field_181737_U);
+            }
+         }
+         return true;
+      }
+   }
+   public ILockableContainer getLockableContainer(World worldIn, BlockPos pos) {
+      TileEntity tileentity = worldIn.getTileEntity(pos);
+      if(!(tileentity instanceof TileEntityChest)) {
+         return null;
+      } else {
+         ILockableContainer ilockablecontainer = (TileEntityChest)tileentity;
+         if(this.isBlocked(worldIn, pos)) {
+            return null;
+         } else {
+            for(EnumFacing enumfacing : EnumFacing.Plane.HORIZONTAL) {
+               BlockPos blockpos = pos.offset(enumfacing);
+               Block block = worldIn.getBlockState(blockpos).getBlock();
+               if(block == this) {
+                  if(this.isBlocked(worldIn, blockpos)) {
+                     return null;
+                  }
+                  TileEntity tileentity1 = worldIn.getTileEntity(blockpos);
+                  if(tileentity1 instanceof TileEntityChest) {
+                     if(enumfacing != EnumFacing.WEST && enumfacing != EnumFacing.NORTH) {
+// 
+         nClose(this.fd);
+      }
+   }
+   private static final native void nClose(long var0) throws IOException;
+   private final void checkClosed() throws IOException {
+      if(this.closed) {
+         throw new IOException("Device is closed");
+      }
+   }
+   protected void finalize() throws IOException {
+      this.close();
+   }
+}
+package net.java.games.input;
+final class LinuxJoystickEvent {
+   private long nanos;
+   private int value;
+   private int type;
+   private int number;
+   public final void set(long millis, int value, int type, int number) {
+      this.nanos = millis * 1000000L;
+      this.value = value;
+      this.type = type;
+      this.number = number;
+   }
+   public final int getValue() {
+      return this.value;
+   }
+   public final int getType() {
+      return this.type;
+   }
+   public final int getNumber() {
+      return this.number;
+   }
+   public final long getNanos() {
+      return this.nanos;
+   }
+}
+package net.java.games.input;
+import net.java.games.input.Component;
+import net.java.games.input.LinuxEnvironmentPlugin;
+import net.java.games.input.LinuxJoystickAxis;
+public class LinuxJoystickPOV extends LinuxJoystickAxis {
+   private LinuxJoystickAxis hatX;
+   private LinuxJoystickAxis hatY;
+   LinuxJoystickPOV(Component.Identifier.Axis id, LinuxJoystickAxis hatX, LinuxJoystickAxis hatY) {
+      super(id, false);
+      this.hatX = hatX;
+      this.hatY = hatY;
+   }
+   protected LinuxJoystickAxis getXAxis() {
+      return this.hatX;
+   }
+   protected LinuxJoystickAxis getYAxis() {
+      return this.hatY;
+   }
+   protected void updateValue() {
+      float last_x = this.hatX.getPollData();
+      float last_y = this.hatY.getPollData();
+      this.resetHasPolled();
+      if(last_x == -1.0F && last_y == -1.0F) {
+         this.setValue(0.125F);
+      } else if(last_x == -1.0F && last_y == 0.0F) {
+         this.setValue(1.0F);
+      } else if(last_x == -1.0F && last_y == 1.0F) {
+         this.setValue(0.875F);
+      } else if(last_x == 0.0F && last_y == -1.0F) {
+         this.setValue(0.25F);
+      } else if(last_x == 0.0F && last_y == 0.0F) {
+         this.setValue(0.0F);
+      } else if(last_x == 0.0F && last_y == 1.0F) {
+         this.setValue(0.75F);
+      } else if(last_x == 1.0F && last_y == -1.0F) {
+         this.setValue(0.375F);
+      } else if(last_x == 1.0F && last_y == 0.0F) {
+         this.setValue(0.5F);
+      } else if(last_x == 1.0F && last_y == 1.0F) {
+         this.setValue(0.625F);
+      } else {
+         LinuxEnvironmentPlugin.logln("Unknown values x = " + last_x + " | y = " + last_y);
+         this.setValue(0.0F);
+      }
+   }
+}
+package net.java.games.input;
+import java.io.IOException;
+import net.java.games.input.Component;
+import net.java.games.input.Controller;
+import net.java.games.input.Event;
+import net.java.games.input.Keyboard;
+import net.java.games.input.LinuxControllers;
+import net.java.games.input.LinuxEventDevice;
+import net.java.games.input.Rumbler;
+final class LinuxKeyboard extends Keyboard {
+   private final Controller.PortType port;
+   private final LinuxEventDevice device;
+   protected LinuxKeyboard(LinuxEventDevice device, Component[] components, Controller[] children, Rumbler[] rumblers) throws IOException {
+// 
+package net.jpountz.lz4;
+enum LZ4Constants {
+   static final int DEFAULT_COMPRESSION_LEVEL = 9;
+   static final int MAX_COMPRESSION_LEVEL = 17;
+   static final int MEMORY_USAGE = 14;
+   static final int NOT_COMPRESSIBLE_DETECTION_LEVEL = 6;
+   static final int MIN_MATCH = 4;
+   static final int HASH_LOG = 12;
+   static final int HASH_TABLE_SIZE = 4096;
+   static final int SKIP_STRENGTH = Math.max(6, 2);
+   static final int COPY_LENGTH = 8;
+   static final int LAST_LITERALS = 5;
+   static final int MF_LIMIT = 12;
+   static final int MIN_LENGTH = 13;
+   static final int MAX_DISTANCE = 65536;
+   static final int ML_BITS = 4;
+   static final int ML_MASK = 15;
+   static final int RUN_BITS = 4;
+   static final int RUN_MASK = 15;
+   static final int LZ4_64K_LIMIT = 65547;
+   static final int HASH_LOG_64K = 13;
+   static final int HASH_TABLE_SIZE_64K = 8192;
+   static final int HASH_LOG_HC = 15;
+   static final int HASH_TABLE_SIZE_HC = 32768;
+   static final int OPTIMAL_ML = 18;
+}
+package net.jpountz.lz4;
+/** @deprecated */
+@Deprecated
+public interface LZ4Decompressor {
+   int decompress(byte[] var1, int var2, byte[] var3, int var4, int var5);
+}
+package net.jpountz.lz4;
+public class LZ4Exception extends RuntimeException {
+   private static final long serialVersionUID = 1L;
+   public LZ4Exception(String msg, Throwable t) {
+      super(msg, t);
+   }
+   public LZ4Exception(String msg) {
+      super(msg);
+   }
+   public LZ4Exception() {
+   }
+}
+package net.jpountz.lz4;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import net.jpountz.lz4.LZ4Compressor;
+import net.jpountz.lz4.LZ4Decompressor;
+import net.jpountz.lz4.LZ4FastDecompressor;
+import net.jpountz.lz4.LZ4SafeDecompressor;
+import net.jpountz.lz4.LZ4UnknownSizeDecompressor;
+import net.jpountz.util.Native;
+import net.jpountz.util.Utils;
+public final class LZ4Factory {
+   private static LZ4Factory NATIVE_INSTANCE;
+   private static LZ4Factory JAVA_UNSAFE_INSTANCE;
+   private static LZ4Factory JAVA_SAFE_INSTANCE;
+   private final String impl;
+   private final LZ4Compressor fastCompressor;
+   private final LZ4Compressor highCompressor;
+   private final LZ4FastDecompressor fastDecompressor;
+   private final LZ4SafeDecompressor safeDecompressor;
+   private final LZ4Compressor[] highCompressors = new LZ4Compressor[18];
+   private static LZ4Factory instance(String impl) {
+      try {
+         return new LZ4Factory(impl);
+      } catch (Exception var2) {
+         throw new AssertionError(var2);
+      }
+   }
+   public static synchronized LZ4Factory nativeInstance() {
+      if(NATIVE_INSTANCE == null) {
+         NATIVE_INSTANCE = instance("JNI");
+      }
+      return NATIVE_INSTANCE;
+   }
+   public static synchronized LZ4Factory safeInstance() {
+      if(JAVA_SAFE_INSTANCE == null) {
+         JAVA_SAFE_INSTANCE = instance("JavaSafe");
+      }
+      return JAVA_SAFE_INSTANCE;
+   }
+   public static synchronized LZ4Factory unsafeInstance() {
+      if(JAVA_UNSAFE_INSTANCE == null) {
+         JAVA_UNSAFE_INSTANCE = instance("JavaUnsafe");
+      }
+      return JAVA_UNSAFE_INSTANCE;
+   }
+   public static LZ4Factory fastestJavaInstance() {
+      if(Utils.isUnalignedAccessAllowed()) {
+         try {
+            return unsafeInstance();
+         } catch (Throwable var1) {
+            return safeInstance();
+         }
+      } else {
+// 
+            }
+         }
+         dOff = LZ4ByteBufferUtils.lastLiterals(src, anchor, srcEnd - anchor, dest, dOff, destEnd);
+         return dOff - destOff;
+      }
+   }
+   private class HashTable {
+      static final int MASK = 65535;
+      int nextToUpdate;
+      private final int base;
+      private final int[] hashTable;
+      private final short[] chainTable;
+      HashTable(int base) {
+         this.base = base;
+         this.nextToUpdate = base;
+         this.hashTable = new int['耀'];
+         Arrays.fill(this.hashTable, -1);
+         this.chainTable = new short[65536];
+      }
+      private int hashPointer(byte[] bytes, int off) {
+         int v = UnsafeUtils.readInt(bytes, off);
+         return this.hashPointer(v);
+      }
+      private int hashPointer(ByteBuffer bytes, int off) {
+         int v = ByteBufferUtils.readInt(bytes, off);
+         return this.hashPointer(v);
+      }
+      private int hashPointer(int v) {
+         int h = LZ4Utils.hashHC(v);
+         return this.hashTable[h];
+      }
+      private int next(int off) {
+         return off - (this.chainTable[off & '\uffff'] & '\uffff');
+      }
+      private void addHash(byte[] bytes, int off) {
+         int v = UnsafeUtils.readInt(bytes, off);
+         this.addHash(v, off);
+      }
+      private void addHash(ByteBuffer bytes, int off) {
+         int v = ByteBufferUtils.readInt(bytes, off);
+         this.addHash(v, off);
+      }
+      private void addHash(int v, int off) {
+         int h = LZ4Utils.hashHC(v);
+         int delta = off - this.hashTable[h];
+         assert delta > 0 : delta;
+         if(delta >= 65536) {
+            delta = '\uffff';
+         }
+         this.chainTable[off & '\uffff'] = (short)delta;
+         this.hashTable[h] = off;
+      }
+      void insert(int off, byte[] bytes) {
+         while(this.nextToUpdate < off) {
+            this.addHash(bytes, this.nextToUpdate);
+            ++this.nextToUpdate;
+         }
+      }
+      void insert(int off, ByteBuffer bytes) {
+         while(this.nextToUpdate < off) {
+            this.addHash(bytes, this.nextToUpdate);
+            ++this.nextToUpdate;
+         }
+      }
+      boolean insertAndFindBestMatch(byte[] buf, int off, int matchLimit, LZ4Utils.Match match) {
+         match.start = off;
+         match.len = 0;
+         int delta = 0;
+         int repl = 0;
+         this.insert(off, buf);
+         int ref = this.hashPointer(buf, off);
+         if(ref >= off - 4 && ref <= off && ref >= this.base) {
+            if(LZ4UnsafeUtils.readIntEquals(buf, ref, off)) {
+               delta = off - ref;
+               repl = match.len = 4 + LZ4UnsafeUtils.commonBytes(buf, ref + 4, off + 4, matchLimit);
+               match.ref = ref;
+            }
+            ref = this.next(ref);
+         }
+         for(int i = 0; i < LZ4HCJavaUnsafeCompressor.this.maxAttempts && ref >= Math.max(this.base, off - 65536 + 1) && ref <= off; ++i) {
+            if(LZ4UnsafeUtils.readIntEquals(buf, ref, off)) {
+               int matchLen = 4 + LZ4UnsafeUtils.commonBytes(buf, ref + 4, off + 4, matchLimit);
+               if(matchLen > match.len) {
+                  match.ref = ref;
+                  match.len = matchLen;
+               }
+            }
+            ref = this.next(ref);
+         }
+         if(repl != 0) {
+            int ptr = off;
+            int end;
+            for(end = off + repl - 3; ptr < end - delta; ++ptr) {
+               this.chainTable[ptr & '\uffff'] = (short)delta;
+            }
+// 
+   public static final PropertyBool EAST = PropertyBool.create("east");
+   public static final PropertyBool SOUTH = PropertyBool.create("south");
+   public static final PropertyBool WEST = PropertyBool.create("west");
+   public BlockFence(Material materialIn) {
+      this(materialIn, materialIn.getMaterialMapColor());
+   }
+   public BlockFence(Material p_i46395_1_, MapColor p_i46395_2_) {
+      super(p_i46395_1_, p_i46395_2_);
+      this.setDefaultState(this.blockState.getBaseState().withProperty(NORTH, Boolean.valueOf(false)).withProperty(EAST, Boolean.valueOf(false)).withProperty(SOUTH, Boolean.valueOf(false)).withProperty(WEST, Boolean.valueOf(false)));
+      this.setCreativeTab(CreativeTabs.tabDecorations);
+   }
+   public void addCollisionBoxesToList(World worldIn, BlockPos pos, IBlockState state, AxisAlignedBB mask, List list, Entity collidingEntity) {
+      boolean flag = this.canConnectTo(worldIn, pos.north());
+      boolean flag1 = this.canConnectTo(worldIn, pos.south());
+      boolean flag2 = this.canConnectTo(worldIn, pos.west());
+      boolean flag3 = this.canConnectTo(worldIn, pos.east());
+      float f = 0.375F;
+      float f1 = 0.625F;
+      float f2 = 0.375F;
+      float f3 = 0.625F;
+      if(flag) {
+         f2 = 0.0F;
+      }
+      if(flag1) {
+         f3 = 1.0F;
+      }
+      if(flag || flag1) {
+         this.setBlockBounds(f, 0.0F, f2, f1, 1.5F, f3);
+         super.addCollisionBoxesToList(worldIn, pos, state, mask, list, collidingEntity);
+      }
+      f2 = 0.375F;
+      f3 = 0.625F;
+      if(flag2) {
+         f = 0.0F;
+      }
+      if(flag3) {
+         f1 = 1.0F;
+      }
+      if(flag2 || flag3 || !flag && !flag1) {
+         this.setBlockBounds(f, 0.0F, f2, f1, 1.5F, f3);
+         super.addCollisionBoxesToList(worldIn, pos, state, mask, list, collidingEntity);
+      }
+      if(flag) {
+         f2 = 0.0F;
+      }
+      if(flag1) {
+         f3 = 1.0F;
+      }
+      this.setBlockBounds(f, 0.0F, f2, f1, 1.0F, f3);
+   }
+   public void setBlockBoundsBasedOnState(IBlockAccess worldIn, BlockPos pos) {
+      boolean flag = this.canConnectTo(worldIn, pos.north());
+      boolean flag1 = this.canConnectTo(worldIn, pos.south());
+      boolean flag2 = this.canConnectTo(worldIn, pos.west());
+      boolean flag3 = this.canConnectTo(worldIn, pos.east());
+      float f = 0.375F;
+      float f1 = 0.625F;
+      float f2 = 0.375F;
+      float f3 = 0.625F;
+      if(flag) {
+         f2 = 0.0F;
+      }
+      if(flag1) {
+         f3 = 1.0F;
+      }
+      if(flag2) {
+         f = 0.0F;
+      }
+      if(flag3) {
+         f1 = 1.0F;
+      }
+      this.setBlockBounds(f, 0.0F, f2, f1, 1.0F, f3);
+   }
+   public boolean isOpaqueCube() {
+      return false;
+   }
+   public boolean isFullCube() {
+      return false;
+   }
+   public boolean isPassable(IBlockAccess worldIn, BlockPos pos) {
+      return false;
+   }
+   public boolean canConnectTo(IBlockAccess worldIn, BlockPos pos) {
+      Block block = worldIn.getBlockState(pos).getBlock();
+      return block == Blocks.barrier?false:((!(block instanceof BlockFence) || block.blockMaterial != this.blockMaterial) && !(block instanceof BlockFenceGate)?(block.blockMaterial.isOpaque() && block.isFullCube()?block.blockMaterial != Material.gourd:false):true);
+   }
+   public boolean shouldSideBeRendered(IBlockAccess worldIn, BlockPos pos, EnumFacing side) {
+      return true;
+   }
+   public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumFacing side, float hitX, float hitY, float hitZ) {
+      return worldIn.isRemote?true:ItemLead.attachToFence(playerIn, worldIn, pos);
+// 
+      if(aKey.length() == 0) {
+         throw new IllegalArgumentException();
+      } else {
+         char[] keyChars = charsOf(aKey);
+         this.remove(keyChars, 0, keyChars.length);
+      }
+   }
+   private boolean remove(char[] aKey, int offset, int length) {
+      if(offset == length) {
+         return this.removeAtEndOfKey();
+      } else {
+         char nextChar = aKey[offset];
+         AbbreviationMap<V> child = (AbbreviationMap)this.children.get(Character.valueOf(nextChar));
+         if(child != null && child.remove(aKey, offset + 1, length)) {
+            --this.keysBeyond;
+            if(child.keysBeyond == 0) {
+               this.children.remove(Character.valueOf(nextChar));
+            }
+            if(this.keysBeyond == 1 && this.key == null) {
+               this.setValueToThatOfOnlyChild();
+            }
+            return true;
+         } else {
+            return false;
+         }
+      }
+   }
+   private void setValueToThatOfOnlyChild() {
+      Entry<Character, AbbreviationMap<V>> entry = (Entry)this.children.entrySet().iterator().next();
+      AbbreviationMap<V> onlyChild = (AbbreviationMap)entry.getValue();
+      this.value = onlyChild.value;
+   }
+   private boolean removeAtEndOfKey() {
+      if(this.key == null) {
+         return false;
+      } else {
+         this.key = null;
+         if(this.keysBeyond == 1) {
+            this.setValueToThatOfOnlyChild();
+         } else {
+            this.value = null;
+         }
+         return true;
+      }
+   }
+   public Map toJavaUtilMap() {
+      Map<String, V> mappings = new TreeMap();
+      this.addToMappings(mappings);
+      return mappings;
+   }
+   private void addToMappings(Map mappings) {
+      if(this.key != null) {
+         mappings.put(this.key, this.value);
+      }
+      for(AbbreviationMap<V> each : this.children.values()) {
+         each.addToMappings(mappings);
+      }
+   }
+   private static char[] charsOf(String aKey) {
+      char[] chars = new char[aKey.length()];
+      aKey.getChars(0, aKey.length(), chars, 0);
+      return chars;
+   }
+}
+package joptsimple.internal;
+import java.util.HashMap;
+import java.util.Map;
+public final class Classes {
+   private static final Map WRAPPERS = new HashMap(13);
+   private Classes() {
+      throw new UnsupportedOperationException();
+   }
+   public static String shortNameOf(String className) {
+      return className.substring(className.lastIndexOf(46) + 1);
+   }
+   public static Class wrapperOf(Class clazz) {
+      return clazz.isPrimitive()?(Class)WRAPPERS.get(clazz):clazz;
+   }
+   static {
+      WRAPPERS.put(Boolean.TYPE, Boolean.class);
+      WRAPPERS.put(Byte.TYPE, Byte.class);
+      WRAPPERS.put(Character.TYPE, Character.class);
+      WRAPPERS.put(Double.TYPE, Double.class);
+      WRAPPERS.put(Float.TYPE, Float.class);
+      WRAPPERS.put(Integer.TYPE, Integer.class);
+      WRAPPERS.put(Long.TYPE, Long.class);
+      WRAPPERS.put(Short.TYPE, Short.class);
+      WRAPPERS.put(Void.TYPE, Void.class);
+   }
+}
+package joptsimple.internal;
+import java.text.BreakIterator;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import joptsimple.internal.Row;
+import joptsimple.internal.Strings;
+// 
+   private ModProfile activeModProfile;
+   private List modProfiles = new ArrayList();
+   private Map modProfileNames = new HashMap();
+   private AccountManager accountManager = new AccountManager();
+   public ModProfileManager() {
+      this.modProfilesFolder = new File(Minecraft.getMinecraft().mcDataDir, "BLClient-Mod-Profiles-1.8/");
+   }
+   public void loadModProfiles() throws Throwable {
+      if(!this.modProfilesFolder.exists()) {
+         this.modProfilesFolder.mkdir();
+      }
+      File[] afile = this.modProfilesFolder.listFiles(new FilenameFilter() {
+         public boolean accept(File dir, String name) {
+            return name.toLowerCase().endsWith(".json");
+         }
+      });
+      if(afile != null) {
+         for(File file1 : afile) {
+            try {
+               FileReader filereader = new FileReader(file1);
+               Throwable throwable = null;
+               try {
+                  ModProfile modprofile = (ModProfile)Wrapper.getInstance().getGson().fromJson((Reader)filereader, (Class)ModProfile.class);
+                  if(modprofile.getVersion() != null && modprofile.getVersion().intValue() == 2) {
+                     modprofile.setProfileName(file1.getName().substring(0, file1.getName().length() - 5));
+                     if(this.modProfileNames.containsKey(modprofile.getProfileName())) {
+                        LogManager.getLogger().error("Duplicate Badlion Client Mod Profile detected, not loading duplicate: " + file1.getName());
+                     } else {
+                        this.modProfiles.add(modprofile);
+                        this.modProfileNames.put(modprofile.getProfileName(), modprofile);
+                        if(modprofile.isActive()) {
+                           this.activateModProfile(modprofile);
+                        }
+                     }
+                  } else {
+                     file1.renameTo(new File(this.modProfilesFolder, file1.getName() + ".OUTDATED"));
+                  }
+               } catch (Throwable var17) {
+                  throwable = var17;
+                  throw var17;
+               } finally {
+                  if(filereader != null) {
+                     if(throwable != null) {
+                        try {
+                           filereader.close();
+                        } catch (Throwable var16) {
+                           throwable.addSuppressed(var16);
+                        }
+                     } else {
+                        filereader.close();
+                     }
+                  }
+               }
+            } catch (Exception var19) {
+               LogManager.getLogger().error("Failed to load Badlion Client Mod Profile: " + file1.getName());
+               LogManager.getLogger().catching(var19);
+            }
+         }
+      }
+      if(this.modProfiles.isEmpty()) {
+         this.createDefaultModProfile();
+      } else if(this.activeModProfile == null) {
+         this.activateModProfile((ModProfile)this.modProfiles.get(0));
+      }
+      Collections.sort(this.modProfiles, new Comparator() {
+         public int compare(ModProfile o1, ModProfile o2) {
+            return Integer.valueOf(o1.getSortIndex()).compareTo(Integer.valueOf(o2.getSortIndex()));
+         }
+      });
+   }
+   private void createDefaultModProfile() {
+      ModProfile modprofile = new ModProfile("Default");
+      this.activateModProfile(modprofile);
+      this.modProfiles.add(modprofile);
+      this.modProfileNames.put(modprofile.getProfileName(), modprofile);
+   }
+   public void saveActiveModProfile() {
+      this.saveModProfile(this.activeModProfile);
+   }
+   private void saveModProfile(ModProfile modProfile) {
+      File file1 = new File(this.modProfilesFolder, modProfile.getProfileName() + ".json");
+      try {
+         FileWriter filewriter = new FileWriter(file1);
+         Throwable throwable = null;
+         try {
+            filewriter.write(Wrapper.getInstance().getGson().toJson((Object)modProfile));
+         } catch (Throwable var18) {
+            Throwable throwable2 = var18;
+            throwable = var18;
+// 
+         }
+      } else {
+         for(int i = 0; i < 3; ++i) {
+            double d0 = (double)pos.getX() + rand.nextDouble();
+            double d1 = (double)pos.getY() + rand.nextDouble() * 0.5D + 0.5D;
+            double d2 = (double)pos.getZ() + rand.nextDouble();
+            worldIn.spawnParticle(EnumParticleTypes.SMOKE_LARGE, d0, d1, d2, 0.0D, 0.0D, 0.0D, new int[0]);
+         }
+      }
+   }
+   public MapColor getMapColor(IBlockState state) {
+      return MapColor.tntColor;
+   }
+   public EnumWorldBlockLayer getBlockLayer() {
+      return EnumWorldBlockLayer.CUTOUT;
+   }
+   public IBlockState getStateFromMeta(int meta) {
+      return this.getDefaultState().withProperty(AGE, Integer.valueOf(meta));
+   }
+   public int getMetaFromState(IBlockState state) {
+      return ((Integer)state.getValue(AGE)).intValue();
+   }
+   protected BlockState createBlockState() {
+      return new BlockState(this, new IProperty[]{AGE, NORTH, EAST, SOUTH, WEST, UPPER, FLIP, ALT});
+   }
+}
+package net.minecraft.block;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
+import java.util.Collection;
+import java.util.List;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockBush;
+import net.minecraft.block.properties.IProperty;
+import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.BlockState;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.IStringSerializable;
+public abstract class BlockFlower extends BlockBush {
+   protected PropertyEnum type;
+   protected BlockFlower() {
+      this.setDefaultState(this.blockState.getBaseState().withProperty(this.getTypeProperty(), this.getBlockType() == BlockFlower.EnumFlowerColor.RED?BlockFlower.EnumFlowerType.POPPY:BlockFlower.EnumFlowerType.DANDELION));
+   }
+   public int damageDropped(IBlockState state) {
+      return ((BlockFlower.EnumFlowerType)state.getValue(this.getTypeProperty())).getMeta();
+   }
+   public void getSubBlocks(Item itemIn, CreativeTabs tab, List list) {
+      BlockFlower.EnumFlowerType[] var7;
+      for(BlockFlower.EnumFlowerType blockflower$enumflowertype : var7 = BlockFlower.EnumFlowerType.getTypes(this.getBlockType())) {
+         list.add(new ItemStack(itemIn, 1, blockflower$enumflowertype.getMeta()));
+      }
+   }
+   public IBlockState getStateFromMeta(int meta) {
+      return this.getDefaultState().withProperty(this.getTypeProperty(), BlockFlower.EnumFlowerType.getType(this.getBlockType(), meta));
+   }
+   public abstract BlockFlower.EnumFlowerColor getBlockType();
+   public IProperty getTypeProperty() {
+      if(this.type == null) {
+         this.type = PropertyEnum.create("type", BlockFlower.EnumFlowerType.class, new Predicate() {
+            public boolean apply(BlockFlower.EnumFlowerType p_apply_1_) {
+               return p_apply_1_.getBlockType() == BlockFlower.this.getBlockType();
+            }
+         });
+      }
+      return this.type;
+   }
+   public int getMetaFromState(IBlockState state) {
+      return ((BlockFlower.EnumFlowerType)state.getValue(this.getTypeProperty())).getMeta();
+   }
+   protected BlockState createBlockState() {
+      return new BlockState(this, new IProperty[]{this.getTypeProperty()});
+   }
+   public Block.EnumOffsetType getOffsetType() {
+      return Block.EnumOffsetType.XZ;
+   }
+   public static enum EnumFlowerColor {
+      YELLOW,
+      RED;
+      public BlockFlower getBlock() {
+         return this == YELLOW?Blocks.yellow_flower:Blocks.red_flower;
+      }
+   }
+   public static enum EnumFlowerType implements IStringSerializable {
+      DANDELION(BlockFlower.EnumFlowerColor.YELLOW, 0, "dandelion"),
+      POPPY(BlockFlower.EnumFlowerColor.RED, 0, "poppy"),
+      BLUE_ORCHID(BlockFlower.EnumFlowerColor.RED, 1, "blue_orchid", "blueOrchid"),
+      }
+   }
+}
+package net.minecraft.client.gui;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.gui.spectator.ISpectatorMenuObject;
+import net.minecraft.client.gui.spectator.ISpectatorMenuRecipient;
+import net.minecraft.client.gui.spectator.SpectatorMenu;
+import net.minecraft.client.gui.spectator.categories.SpectatorDetails;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.settings.GameSettings;
+import net.minecraft.util.MathHelper;
+import net.minecraft.util.ResourceLocation;
+public class GuiSpectator extends Gui implements ISpectatorMenuRecipient {
+   private static final ResourceLocation field_175267_f = new ResourceLocation("textures/gui/widgets.png");
+   public static final ResourceLocation field_175269_a = new ResourceLocation("textures/gui/spectator_widgets.png");
+   private final Minecraft field_175268_g;
+   private long field_175270_h;
+   private SpectatorMenu field_175271_i;
+   public GuiSpectator(Minecraft mcIn) {
+      this.field_175268_g = mcIn;
+   }
+   public void func_175260_a(int p_175260_1_) {
+      this.field_175270_h = Minecraft.getSystemTime();
+      if(this.field_175271_i != null) {
+         this.field_175271_i.func_178644_b(p_175260_1_);
+      } else {
+         this.field_175271_i = new SpectatorMenu(this);
+      }
+   }
+   private float func_175265_c() {
+      long i = this.field_175270_h - Minecraft.getSystemTime() + 5000L;
+      return MathHelper.clamp_float((float)i / 2000.0F, 0.0F, 1.0F);
+   }
+   public void renderTooltip(ScaledResolution p_175264_1_, float p_175264_2_) {
+      if(this.field_175271_i != null) {
+         float f = this.func_175265_c();
+         if(f <= 0.0F) {
+            this.field_175271_i.func_178641_d();
+         } else {
+            int i = p_175264_1_.getScaledWidth() / 2;
+            float f1 = this.zLevel;
+            this.zLevel = -90.0F;
+            float f2 = (float)p_175264_1_.getScaledHeight() - 22.0F * f;
+            SpectatorDetails spectatordetails = this.field_175271_i.func_178646_f();
+            this.func_175258_a(p_175264_1_, f, i, f2, spectatordetails);
+            this.zLevel = f1;
+         }
+      }
+   }
+   protected void func_175258_a(ScaledResolution p_175258_1_, float p_175258_2_, int p_175258_3_, float p_175258_4_, SpectatorDetails p_175258_5_) {
+      GlStateManager.enableRescaleNormal();
+      GlStateManager.enableBlend();
+      GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+      GlStateManager.color(1.0F, 1.0F, 1.0F, p_175258_2_);
+      this.field_175268_g.getTextureManager().bindTexture(field_175267_f);
+      this.drawTexturedModalRect((float)(p_175258_3_ - 91), p_175258_4_, 0, 0, 182, 22);
+      if(p_175258_5_.func_178681_b() >= 0) {
+         this.drawTexturedModalRect((float)(p_175258_3_ - 91 - 1 + p_175258_5_.func_178681_b() * 20), p_175258_4_ - 1.0F, 0, 22, 24, 22);
+      }
+      RenderHelper.enableGUIStandardItemLighting();
+      for(int i = 0; i < 9; ++i) {
+         this.func_175266_a(i, p_175258_1_.getScaledWidth() / 2 - 90 + i * 20 + 2, p_175258_4_ + 3.0F, p_175258_2_, p_175258_5_.func_178680_a(i));
+      }
+      RenderHelper.disableStandardItemLighting();
+      GlStateManager.disableRescaleNormal();
+      GlStateManager.disableBlend();
+   }
+   private void func_175266_a(int p_175266_1_, int p_175266_2_, float p_175266_3_, float p_175266_4_, ISpectatorMenuObject p_175266_5_) {
+      this.field_175268_g.getTextureManager().bindTexture(field_175269_a);
+      if(p_175266_5_ != SpectatorMenu.field_178657_a) {
+         int i = (int)(p_175266_4_ * 255.0F);
+         GlStateManager.pushMatrix();
+         GlStateManager.translate((float)p_175266_2_, p_175266_3_, 0.0F);
+         float f = p_175266_5_.func_178662_A_()?1.0F:0.25F;
+         GlStateManager.color(f, f, f, p_175266_4_);
+         p_175266_5_.func_178663_a(f, i);
+         GlStateManager.popMatrix();
+         String s = String.valueOf(GameSettings.getKeyDisplayString(this.field_175268_g.gameSettings.keyBindings[p_175266_1_].getKeyCode()));
+         if(i > 3 && p_175266_5_.func_178662_A_()) {
+            this.field_175268_g.fontRendererObj.drawStringWithShadow(s, (float)(p_175266_2_ + 19 - 2 - this.field_175268_g.fontRendererObj.getStringWidth(s)), p_175266_3_ + 6.0F + 3.0F, 16777215 + (i << 24));
+         }
+      }
+   }
+      }
+   }
+}

@@ -1,0 +1,376 @@
+//控制交互数据统计 
+      }
+   }
+}
+package joptsimple;
+import java.util.Collection;
+import joptsimple.IllegalOptionSpecificationException;
+final class ParserRules {
+   static final char HYPHEN_CHAR = '-';
+   static final String HYPHEN = String.valueOf('-');
+   static final String DOUBLE_HYPHEN = "--";
+   static final String OPTION_TERMINATOR = "--";
+   static final String RESERVED_FOR_EXTENSIONS = "W";
+   private ParserRules() {
+      throw new UnsupportedOperationException();
+   }
+   static boolean isShortOptionToken(String argument) {
+      return argument.startsWith(HYPHEN) && !HYPHEN.equals(argument) && !isLongOptionToken(argument);
+   }
+   static boolean isLongOptionToken(String argument) {
+      return argument.startsWith("--") && !isOptionTerminator(argument);
+   }
+   static boolean isOptionTerminator(String argument) {
+      return "--".equals(argument);
+   }
+   static void ensureLegalOption(String option) {
+      if(option.startsWith(HYPHEN)) {
+         throw new IllegalOptionSpecificationException(String.valueOf(option));
+      } else {
+         for(int i = 0; i < option.length(); ++i) {
+            ensureLegalOptionCharacter(option.charAt(i));
+         }
+      }
+   }
+   static void ensureLegalOptions(Collection options) {
+      for(String each : options) {
+         ensureLegalOption(each);
+      }
+   }
+   private static void ensureLegalOptionCharacter(char option) {
+      if(!Character.isLetterOrDigit(option) && !isAllowedPunctuation(option)) {
+         throw new IllegalOptionSpecificationException(String.valueOf(option));
+      }
+   }
+   private static boolean isAllowedPunctuation(char option) {
+      String allowedPunctuation = "?.-";
+      return allowedPunctuation.indexOf(option) != -1;
+   }
+}
+package joptsimple;
+import java.util.Collection;
+import joptsimple.ArgumentAcceptingOptionSpec;
+import joptsimple.ArgumentList;
+import joptsimple.OptionMissingRequiredArgumentException;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+class RequiredArgumentOptionSpec extends ArgumentAcceptingOptionSpec {
+   RequiredArgumentOptionSpec(String option) {
+      super(option, true);
+   }
+   RequiredArgumentOptionSpec(Collection options, String description) {
+      super(options, true, description);
+   }
+   protected void detectOptionArgument(OptionParser parser, ArgumentList arguments, OptionSet detectedOptions) {
+      if(!arguments.hasMore()) {
+         throw new OptionMissingRequiredArgumentException(this.options());
+      } else {
+         this.addArguments(detectedOptions, arguments.next());
+      }
+   }
+}
+package joptsimple;
+import java.util.Collections;
+import joptsimple.OptionException;
+class UnacceptableNumberOfNonOptionsException extends OptionException {
+   private static final long serialVersionUID = -1L;
+   private final int minimum;
+   private final int maximum;
+   private final int actual;
+   UnacceptableNumberOfNonOptionsException(int minimum, int maximum, int actual) {
+      super(Collections.singletonList("[arguments]"));
+      this.minimum = minimum;
+      this.maximum = maximum;
+      this.actual = actual;
+   }
+   public String getMessage() {
+      return String.format("actual = %d, minimum = %d, maximum = %d", new Object[]{Integer.valueOf(this.actual), Integer.valueOf(this.minimum), Integer.valueOf(this.maximum)});
+   }
+}
+package joptsimple;
+import java.util.Collection;
+import java.util.Collections;
+import joptsimple.OptionException;
+class UnconfiguredOptionException extends OptionException {
+   private static final long serialVersionUID = -1L;
+   UnconfiguredOptionException(String option) {
+// 
+      }
+   }
+   public boolean shouldSideBeRendered(IBlockAccess worldIn, BlockPos pos, EnumFacing side) {
+      switch($SWITCH_TABLE$net$minecraft$util$EnumFacing()[side.ordinal()]) {
+      case 2:
+         return true;
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+         Block block = worldIn.getBlockState(pos).getBlock();
+         if(!block.isOpaqueCube() && block != Blocks.farmland) {
+            return true;
+         }
+         return false;
+      default:
+         return super.shouldSideBeRendered(worldIn, pos, side);
+      }
+   }
+   public Item getItemDropped(IBlockState state, Random rand, int fortune) {
+      return Blocks.dirt.getItemDropped(Blocks.dirt.getDefaultState().withProperty(BlockDirt.VARIANT, BlockDirt.DirtType.DIRT), rand, fortune);
+   }
+   public Item getItem(World worldIn, BlockPos pos) {
+      return Item.getItemFromBlock(Blocks.dirt);
+   }
+   public IBlockState getStateFromMeta(int meta) {
+      return this.getDefaultState().withProperty(MOISTURE, Integer.valueOf(meta & 7));
+   }
+   public int getMetaFromState(IBlockState state) {
+      return ((Integer)state.getValue(MOISTURE)).intValue();
+   }
+   protected BlockState createBlockState() {
+      return new BlockState(this, new IProperty[]{MOISTURE});
+   }
+   static int[] $SWITCH_TABLE$net$minecraft$util$EnumFacing() {
+      int[] var10000 = $SWITCH_TABLE$net$minecraft$util$EnumFacing;
+      if($SWITCH_TABLE$net$minecraft$util$EnumFacing != null) {
+         return var10000;
+      } else {
+         int[] var0 = new int[EnumFacing.values().length];
+         try {
+            var0[EnumFacing.DOWN.ordinal()] = 1;
+         } catch (NoSuchFieldError var6) {
+            ;
+         }
+         try {
+            var0[EnumFacing.EAST.ordinal()] = 6;
+         } catch (NoSuchFieldError var5) {
+            ;
+         }
+         try {
+            var0[EnumFacing.NORTH.ordinal()] = 3;
+         } catch (NoSuchFieldError var4) {
+            ;
+         }
+         try {
+            var0[EnumFacing.SOUTH.ordinal()] = 4;
+         } catch (NoSuchFieldError var3) {
+            ;
+         }
+         try {
+            var0[EnumFacing.UP.ordinal()] = 2;
+         } catch (NoSuchFieldError var2) {
+            ;
+         }
+         try {
+            var0[EnumFacing.WEST.ordinal()] = 5;
+         } catch (NoSuchFieldError var1) {
+            ;
+         }
+         $SWITCH_TABLE$net$minecraft$util$EnumFacing = var0;
+         return var0;
+      }
+   }
+}
+package net.minecraft.block;
+import java.util.List;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockFenceGate;
+import net.minecraft.block.material.MapColor;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.IProperty;
+import net.minecraft.block.properties.PropertyBool;
+import net.minecraft.block.state.BlockState;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemLead;
+import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
+public class BlockFence extends Block {
+// 
+import java.util.Random;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockStone;
+import net.minecraft.block.BlockStoneBrick;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.IProperty;
+import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.BlockState;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.monster.EntitySilverfish;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.IStringSerializable;
+import net.minecraft.world.World;
+public class BlockSilverfish extends Block {
+   public static final PropertyEnum VARIANT = PropertyEnum.create("variant", BlockSilverfish.EnumType.class);
+   private static int[] $SWITCH_TABLE$net$minecraft$block$BlockSilverfish$EnumType;
+   public BlockSilverfish() {
+      super(Material.clay);
+      this.setDefaultState(this.blockState.getBaseState().withProperty(VARIANT, BlockSilverfish.EnumType.STONE));
+      this.setHardness(0.0F);
+      this.setCreativeTab(CreativeTabs.tabDecorations);
+   }
+   public int quantityDropped(Random random) {
+      return 0;
+   }
+   public static boolean canContainSilverfish(IBlockState blockState) {
+      Block block = blockState.getBlock();
+      return blockState == Blocks.stone.getDefaultState().withProperty(BlockStone.VARIANT, BlockStone.EnumType.STONE) || block == Blocks.cobblestone || block == Blocks.stonebrick;
+   }
+   protected ItemStack createStackedBlock(IBlockState state) {
+      switch($SWITCH_TABLE$net$minecraft$block$BlockSilverfish$EnumType()[((BlockSilverfish.EnumType)state.getValue(VARIANT)).ordinal()]) {
+      case 2:
+         return new ItemStack(Blocks.cobblestone);
+      case 3:
+         return new ItemStack(Blocks.stonebrick);
+      case 4:
+         return new ItemStack(Blocks.stonebrick, 1, BlockStoneBrick.EnumType.MOSSY.getMetadata());
+      case 5:
+         return new ItemStack(Blocks.stonebrick, 1, BlockStoneBrick.EnumType.CRACKED.getMetadata());
+      case 6:
+         return new ItemStack(Blocks.stonebrick, 1, BlockStoneBrick.EnumType.CHISELED.getMetadata());
+      default:
+         return new ItemStack(Blocks.stone);
+      }
+   }
+   public void dropBlockAsItemWithChance(World worldIn, BlockPos pos, IBlockState state, float chance, int fortune) {
+      if(!worldIn.isRemote && worldIn.getGameRules().getBoolean("doTileDrops")) {
+         EntitySilverfish entitysilverfish = new EntitySilverfish(worldIn);
+         entitysilverfish.setLocationAndAngles((double)pos.getX() + 0.5D, (double)pos.getY(), (double)pos.getZ() + 0.5D, 0.0F, 0.0F);
+         worldIn.spawnEntityInWorld(entitysilverfish);
+         entitysilverfish.spawnExplosionParticle();
+      }
+   }
+   public int getDamageValue(World worldIn, BlockPos pos) {
+      IBlockState iblockstate = worldIn.getBlockState(pos);
+      return iblockstate.getBlock().getMetaFromState(iblockstate);
+   }
+   public void getSubBlocks(Item itemIn, CreativeTabs tab, List list) {
+      BlockSilverfish.EnumType[] var7;
+      for(BlockSilverfish.EnumType blocksilverfish$enumtype : var7 = BlockSilverfish.EnumType.values()) {
+         list.add(new ItemStack(itemIn, 1, blocksilverfish$enumtype.getMetadata()));
+      }
+   }
+   public IBlockState getStateFromMeta(int meta) {
+      return this.getDefaultState().withProperty(VARIANT, BlockSilverfish.EnumType.byMetadata(meta));
+   }
+   public int getMetaFromState(IBlockState state) {
+      return ((BlockSilverfish.EnumType)state.getValue(VARIANT)).getMetadata();
+   }
+   protected BlockState createBlockState() {
+      return new BlockState(this, new IProperty[]{VARIANT});
+   }
+   static int[] $SWITCH_TABLE$net$minecraft$block$BlockSilverfish$EnumType() {
+      int[] var10000 = $SWITCH_TABLE$net$minecraft$block$BlockSilverfish$EnumType;
+      if($SWITCH_TABLE$net$minecraft$block$BlockSilverfish$EnumType != null) {
+         return var10000;
+      } else {
+         int[] var0 = new int[BlockSilverfish.EnumType.values().length];
+         try {
+            var0[BlockSilverfish.EnumType.CHISELED_STONEBRICK.ordinal()] = 6;
+         } catch (NoSuchFieldError var6) {
+            ;
+         }
+// 
+      this.timeStampBold.setValue(false);
+      this.timeStampColor = Chat.MCColor.WHITE;
+      super.reset();
+   }
+   public TextButton getTextShadow() {
+      return this.textShadow;
+   }
+   public boolean isTextBackgroundShadow() {
+      return this.textBackgroundShadow.booleanValue();
+   }
+   public ModColor getChatBackgroundColor() {
+      return this.chatBackgroundColor;
+   }
+   public String getPrefix(Date date) {
+      return this.isEnabled() && this.timeStampType != Chat.TimeStampType.NONE?this.timeStampColor.getColor() + (this.timeStampBold.isTrue()?"§l":"") + this.timestampFormat.format(date) + (this.timeStampBold.isTrue()?"§r":""):null;
+   }
+   private void updateDropdown() {
+      String[] astring = new String[Chat.TimeStampType.values().length];
+      astring[0] = "None";
+      for(int i = 1; i < astring.length; ++i) {
+         astring[i] = Chat.TimeStampType.values()[i].getPreview(this.timeStamp24h.isTrue());
+      }
+      this.timeStampDropdown.setList(astring);
+   }
+   private void updateFormat() {
+      this.updateFormat(this.timeStamp24h.isTrue());
+   }
+   private void updateFormat(boolean value) {
+      this.timestampFormat = new SimpleDateFormat(value?this.timeStampType.format24:this.timeStampType.format12);
+   }
+   private void checkSpam(ChatReceivedEvent event) {
+      if(!event.getChatLines().isEmpty()) {
+         String s = event.getComponent().getUnformattedText();
+         int i = 1;
+         Iterator<ChatLine> iterator = event.getChatLines().iterator();
+         while(true) {
+            while(true) {
+               if(!iterator.hasNext()) {
+                  if(i > 1) {
+                     event.getComponent().appendText(" [x" + i + "]");
+                  }
+                  return;
+               }
+               String s1 = ((ChatLine)iterator.next()).getChatComponent().getUnformattedText();
+               if(s1.startsWith(s)) {
+                  if(s1.length() == s.length()) {
+                     ++i;
+                     break;
+                  }
+                  String s2 = s1.substring(s.length());
+                  if(s2.startsWith(" [x") && s2.endsWith("]")) {
+                     String s3 = s2.substring(3, s2.length() - 1);
+                     if(ConvertUtil.isPositiveInteger(s3)) {
+                        i += Integer.parseInt(s3);
+                        break;
+                     }
+                  }
+               }
+            }
+            iterator.remove();
+         }
+      }
+   }
+   static enum MCColor {
+      BLACK('0'),
+      DARK_BLUE('1'),
+      DARK_GREEN('2'),
+      DARK_AQUA('3'),
+      DARK_RED('4'),
+      DARK_PURPLE('5'),
+      GOLD('6'),
+      GRAY('7'),
+      DARK_GRAY('8'),
+      BLUE('9'),
+      GREEN('a'),
+      AQUA('b'),
+      RED('c'),
+      LIGHT_PURPLE('d'),
+      YELLOW('e'),
+      WHITE('f');
+      private char colorCode;
+      private MCColor(char colorCode) {
+         this.colorCode = colorCode;
+      }
+      public String getColor() {
+         return "§" + this.colorCode;
+      }
+      public String getDisplayName() {
+         return Chat.toTitleCase(this.name().replaceAll("_", " "));
+      }
+   }
+   static enum TimeStampType {
+      NONE("", ""),
+      YEAR_MONTH_DAY_HOUR_MINUTE_SECOND("[MMM d yyyy h:mm:ss a] ", "[MMM d yyyy HH:mm:ss] "),

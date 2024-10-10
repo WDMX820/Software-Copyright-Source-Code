@@ -1,0 +1,366 @@
+//控制交互测试参数控制 
+   protected void triggerMixEffects(World worldIn, BlockPos pos) {
+      double d0 = (double)pos.getX();
+      double d1 = (double)pos.getY();
+      double d2 = (double)pos.getZ();
+      worldIn.playSoundEffect(d0 + 0.5D, d1 + 0.5D, d2 + 0.5D, "random.fizz", 0.5F, 2.6F + (worldIn.rand.nextFloat() - worldIn.rand.nextFloat()) * 0.8F);
+      for(int i = 0; i < 8; ++i) {
+         worldIn.spawnParticle(EnumParticleTypes.SMOKE_LARGE, d0 + Math.random(), d1 + 1.2D, d2 + Math.random(), 0.0D, 0.0D, 0.0D, new int[0]);
+      }
+   }
+   public IBlockState getStateFromMeta(int meta) {
+      return this.getDefaultState().withProperty(LEVEL, Integer.valueOf(meta));
+   }
+   public int getMetaFromState(IBlockState state) {
+      return ((Integer)state.getValue(LEVEL)).intValue();
+   }
+   protected BlockState createBlockState() {
+      return new BlockState(this, new IProperty[]{LEVEL});
+   }
+   public static BlockDynamicLiquid getFlowingBlock(Material materialIn) {
+      if(materialIn == Material.water) {
+         return Blocks.flowing_water;
+      } else if(materialIn == Material.lava) {
+         return Blocks.flowing_lava;
+      } else {
+         throw new IllegalArgumentException("Invalid material");
+      }
+   }
+   public static BlockStaticLiquid getStaticBlock(Material materialIn) {
+      if(materialIn == Material.water) {
+         return Blocks.water;
+      } else if(materialIn == Material.lava) {
+         return Blocks.lava;
+      } else {
+         throw new IllegalArgumentException("Invalid material");
+      }
+   }
+}
+package net.minecraft.block;
+import net.minecraft.block.BlockLeaves;
+import net.minecraft.block.BlockRotatedPillar;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.IStringSerializable;
+import net.minecraft.world.World;
+public abstract class BlockLog extends BlockRotatedPillar {
+   public static final PropertyEnum LOG_AXIS = PropertyEnum.create("axis", BlockLog.EnumAxis.class);
+   public BlockLog() {
+      super(Material.wood);
+      this.setCreativeTab(CreativeTabs.tabBlock);
+      this.setHardness(2.0F);
+      this.setStepSound(soundTypeWood);
+   }
+   public void breakBlock(World worldIn, BlockPos pos, IBlockState state) {
+      int i = 4;
+      int j = i + 1;
+      if(worldIn.isAreaLoaded(pos.add(-j, -j, -j), pos.add(j, j, j))) {
+         for(BlockPos blockpos : BlockPos.getAllInBox(pos.add(-i, -i, -i), pos.add(i, i, i))) {
+            IBlockState iblockstate = worldIn.getBlockState(blockpos);
+            if(iblockstate.getBlock().getMaterial() == Material.leaves && !((Boolean)iblockstate.getValue(BlockLeaves.CHECK_DECAY)).booleanValue()) {
+               worldIn.setBlockState(blockpos, iblockstate.withProperty(BlockLeaves.CHECK_DECAY, Boolean.valueOf(true)), 4);
+            }
+         }
+      }
+   }
+   public IBlockState onBlockPlaced(World worldIn, BlockPos pos, EnumFacing facing, float hitX, float hitY, float hitZ, int meta, EntityLivingBase placer) {
+      return super.onBlockPlaced(worldIn, pos, facing, hitX, hitY, hitZ, meta, placer).withProperty(LOG_AXIS, BlockLog.EnumAxis.fromFacingAxis(facing.getAxis()));
+   }
+   public static enum EnumAxis implements IStringSerializable {
+      X("x"),
+      Y("y"),
+      Z("z"),
+      NONE("none");
+      private final String name;
+      private static int[] $SWITCH_TABLE$net$minecraft$util$EnumFacing$Axis;
+      private EnumAxis(String name) {
+         this.name = name;
+      }
+      public String toString() {
+         return this.name;
+      }
+      public static BlockLog.EnumAxis fromFacingAxis(EnumFacing.Axis axis) {
+         switch($SWITCH_TABLE$net$minecraft$util$EnumFacing$Axis()[axis.ordinal()]) {
+         case 1:
+            return X;
+         case 2:
+            return Y;
+         case 3:
+// 
+      DIRT(0, "dirt", "default", MapColor.dirtColor),
+      COARSE_DIRT(1, "coarse_dirt", "coarse", MapColor.dirtColor),
+      PODZOL(2, "podzol", MapColor.obsidianColor);
+      private static final BlockDirt.DirtType[] METADATA_LOOKUP = new BlockDirt.DirtType[values().length];
+      private final int metadata;
+      private final String name;
+      private final String unlocalizedName;
+      private final MapColor field_181067_h;
+      static {
+         BlockDirt.DirtType[] var3;
+         for(BlockDirt.DirtType blockdirt$dirttype : var3 = values()) {
+            METADATA_LOOKUP[blockdirt$dirttype.getMetadata()] = blockdirt$dirttype;
+         }
+      }
+      private DirtType(int p_i46396_3_, String p_i46396_4_, MapColor p_i46396_5_) {
+         this(p_i46396_3_, p_i46396_4_, p_i46396_4_, p_i46396_5_);
+      }
+      private DirtType(int p_i46397_3_, String p_i46397_4_, String p_i46397_5_, MapColor p_i46397_6_) {
+         this.metadata = p_i46397_3_;
+         this.name = p_i46397_4_;
+         this.unlocalizedName = p_i46397_5_;
+         this.field_181067_h = p_i46397_6_;
+      }
+      public int getMetadata() {
+         return this.metadata;
+      }
+      public String getUnlocalizedName() {
+         return this.unlocalizedName;
+      }
+      public MapColor func_181066_d() {
+         return this.field_181067_h;
+      }
+      public String toString() {
+         return this.name;
+      }
+      public static BlockDirt.DirtType byMetadata(int metadata) {
+         if(metadata < 0 || metadata >= METADATA_LOOKUP.length) {
+            metadata = 0;
+         }
+         return METADATA_LOOKUP[metadata];
+      }
+      public String getName() {
+         return this.name;
+      }
+   }
+}
+package net.minecraft.block;
+import java.util.Random;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockContainer;
+import net.minecraft.block.BlockPistonBase;
+import net.minecraft.block.BlockSourceImpl;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.IProperty;
+import net.minecraft.block.properties.PropertyBool;
+import net.minecraft.block.properties.PropertyDirection;
+import net.minecraft.block.state.BlockState;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.dispenser.BehaviorDefaultDispenseItem;
+import net.minecraft.dispenser.IBehaviorDispenseItem;
+import net.minecraft.dispenser.IBlockSource;
+import net.minecraft.dispenser.IPosition;
+import net.minecraft.dispenser.PositionImpl;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.Container;
+import net.minecraft.inventory.InventoryHelper;
+import net.minecraft.item.ItemStack;
+import net.minecraft.stats.StatList;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityDispenser;
+import net.minecraft.tileentity.TileEntityDropper;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.RegistryDefaulted;
+import net.minecraft.world.World;
+public class BlockDispenser extends BlockContainer {
+   public static final PropertyDirection FACING = PropertyDirection.create("facing");
+   public static final PropertyBool TRIGGERED = PropertyBool.create("triggered");
+   public static final RegistryDefaulted dispenseBehaviorRegistry = new RegistryDefaulted(new BehaviorDefaultDispenseItem());
+   protected Random rand = new Random();
+   protected BlockDispenser() {
+      super(Material.rock);
+      this.setDefaultState(this.blockState.getBaseState().withProperty(FACING, EnumFacing.NORTH).withProperty(TRIGGERED, Boolean.valueOf(false)));
+      this.setCreativeTab(CreativeTabs.tabRedstone);
+   }
+   public int tickRate(World worldIn) {
+      return 4;
+   }
+   public void onBlockAdded(World worldIn, BlockPos pos, IBlockState state) {
+      super.onBlockAdded(worldIn, pos, state);
+      this.setDefaultDirection(worldIn, pos, state);
+   }
+   private void setDefaultDirection(World worldIn, BlockPos pos, IBlockState state) {
+// 
+      try {
+         f = new Slf4JLoggerFactory(true);
+         f.newInstance(name).debug("Using SLF4J as the default logging framework");
+      } catch (Throwable var5) {
+         try {
+            f = new Log4JLoggerFactory();
+            f.newInstance(name).debug("Using Log4J as the default logging framework");
+         } catch (Throwable var4) {
+            f = new JdkLoggerFactory();
+            f.newInstance(name).debug("Using java.util.logging as the default logging framework");
+         }
+      }
+      return f;
+   }
+   public static InternalLoggerFactory getDefaultFactory() {
+      return defaultFactory;
+   }
+   public static void setDefaultFactory(InternalLoggerFactory defaultFactory) {
+      if(defaultFactory == null) {
+         throw new NullPointerException("defaultFactory");
+      } else {
+         defaultFactory = defaultFactory;
+      }
+   }
+   public static InternalLogger getInstance(Class clazz) {
+      return getInstance(clazz.getName());
+   }
+   public static InternalLogger getInstance(String name) {
+      return getDefaultFactory().newInstance(name);
+   }
+   protected abstract InternalLogger newInstance(String var1);
+}
+package io.netty.util.internal.logging;
+import io.netty.util.internal.logging.AbstractInternalLogger;
+import io.netty.util.internal.logging.FormattingTuple;
+import io.netty.util.internal.logging.MessageFormatter;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+class JdkLogger extends AbstractInternalLogger {
+   private static final long serialVersionUID = -1767272577989225979L;
+   final transient Logger logger;
+   static final String SELF = JdkLogger.class.getName();
+   static final String SUPER = AbstractInternalLogger.class.getName();
+   JdkLogger(Logger logger) {
+      super(logger.getName());
+      this.logger = logger;
+   }
+   public boolean isTraceEnabled() {
+      return this.logger.isLoggable(Level.FINEST);
+   }
+   public void trace(String msg) {
+      if(this.logger.isLoggable(Level.FINEST)) {
+         this.log(SELF, Level.FINEST, msg, (Throwable)null);
+      }
+   }
+   public void trace(String format, Object arg) {
+      if(this.logger.isLoggable(Level.FINEST)) {
+         FormattingTuple ft = MessageFormatter.format(format, arg);
+         this.log(SELF, Level.FINEST, ft.getMessage(), ft.getThrowable());
+      }
+   }
+   public void trace(String format, Object argA, Object argB) {
+      if(this.logger.isLoggable(Level.FINEST)) {
+         FormattingTuple ft = MessageFormatter.format(format, argA, argB);
+         this.log(SELF, Level.FINEST, ft.getMessage(), ft.getThrowable());
+      }
+   }
+   public void trace(String format, Object... argArray) {
+      if(this.logger.isLoggable(Level.FINEST)) {
+         FormattingTuple ft = MessageFormatter.arrayFormat(format, argArray);
+         this.log(SELF, Level.FINEST, ft.getMessage(), ft.getThrowable());
+      }
+   }
+   public void trace(String msg, Throwable t) {
+      if(this.logger.isLoggable(Level.FINEST)) {
+         this.log(SELF, Level.FINEST, msg, t);
+      }
+   }
+   public boolean isDebugEnabled() {
+      return this.logger.isLoggable(Level.FINE);
+   }
+   public void debug(String msg) {
+      if(this.logger.isLoggable(Level.FINE)) {
+         this.log(SELF, Level.FINE, msg, (Throwable)null);
+      }
+   }
+   public void debug(String format, Object arg) {
+      if(this.logger.isLoggable(Level.FINE)) {
+         FormattingTuple ft = MessageFormatter.format(format, arg);
+         this.log(SELF, Level.FINE, ft.getMessage(), ft.getThrowable());
+      }
+   }
+   public void debug(String format, Object argA, Object argB) {
+      if(this.logger.isLoggable(Level.FINE)) {
+         FormattingTuple ft = MessageFormatter.format(format, argA, argB);
+         this.log(SELF, Level.FINE, ft.getMessage(), ft.getThrowable());
+      }
+// 
+      }
+      public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+         MethodVisitor methodvisitor = super.visitMethod(access, name, desc, signature, exceptions);
+         return (MethodVisitor)(name.equals("b") && desc.equals("()V")?new InventoryEffectVisitor(this.api, methodvisitor):methodvisitor);
+      }
+   }
+   private class LayerArmorBaseClassVisitor extends ClassVisitor {
+      public LayerArmorBaseClassVisitor(int api, ClassVisitor cv) {
+         super(api, cv);
+      }
+      public void visitSource(String source, String debug) {
+         super.visitSource(source, debug);
+         this.visitInnerClass("net/badlion/client/mods/misc/LegacyAnimations$AnimationMode", "net/badlion/client/mods/misc/LegacyAnimations", "AnimationMode", 16409);
+      }
+      public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+         MethodVisitor methodvisitor = super.visitMethod(access, name, desc, signature, exceptions);
+         return (MethodVisitor)(name.equals("b") && desc.equals("()Z")?new CombineTexturesVisitor(this.api, methodvisitor):(name.equals("a") && desc.equals("(Lpr;FFFFFFFI)V")?new RenderLayerVisitor(this.api, methodvisitor):methodvisitor));
+      }
+   }
+   public class LayerCapeClassVisitor extends ClassVisitor {
+      public LayerCapeClassVisitor(int api, ClassWriter classWriter) {
+         super(api, classWriter);
+      }
+      public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+         MethodVisitor methodvisitor = super.visitMethod(access, name, desc, signature, exceptions);
+         if(name.equals("a") && desc.equals("(Lbet;FFFFFFF)V")) {
+            methodvisitor.visitCode();
+            Label label = new Label();
+            methodvisitor.visitLabel(label);
+            methodvisitor.visitLineNumber(17, label);
+            methodvisitor.visitVarInsn(25, 0);
+            methodvisitor.visitFieldInsn(180, "bkp", "a", "Lbln;");
+            methodvisitor.visitVarInsn(25, 1);
+            methodvisitor.visitVarInsn(23, 2);
+            methodvisitor.visitVarInsn(23, 3);
+            methodvisitor.visitVarInsn(23, 4);
+            methodvisitor.visitVarInsn(23, 5);
+            methodvisitor.visitVarInsn(23, 6);
+            methodvisitor.visitVarInsn(23, 7);
+            methodvisitor.visitVarInsn(23, 8);
+            methodvisitor.visitMethodInsn(184, "net/badlion/client/manager/CapeManager", "renderCape", "(Lbln;Lbet;FFFFFFF)V");
+            Label label1 = new Label();
+            methodvisitor.visitLabel(label1);
+            methodvisitor.visitLineNumber(18, label1);
+            methodvisitor.visitInsn(177);
+         }
+         return methodvisitor;
+      }
+   }
+   public class ModelPlayerClassVisitor extends ClassVisitor {
+      public ModelPlayerClassVisitor(int api, ClassWriter classWriter) {
+         super(api, classWriter);
+      }
+      public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+         MethodVisitor methodvisitor = super.visitMethod(access, name, desc, signature, exceptions);
+         return (MethodVisitor)(name.equals("<init>") && desc.equals("(FZ)V")?new ModelPlayerVisitor(this.api, methodvisitor):methodvisitor);
+      }
+   }
+   public class RenderGlobalClassVisitor extends ClassVisitor {
+      public RenderGlobalClassVisitor(int api, ClassWriter classWriter) {
+         super(api, classWriter);
+      }
+      public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+         MethodVisitor methodvisitor = super.visitMethod(access, name, desc, signature, exceptions);
+         return (MethodVisitor)(name.equals("a") && desc.equals("(Lwn;Lauh;IF)V")?new RenderGlobalVisitor(this.api, methodvisitor):methodvisitor);
+      }
+   }
+   public class RenderManagerClassVisitor extends ClassVisitor {
+      public RenderManagerClassVisitor(int api, ClassWriter classWriter) {
+         super(api, classWriter);
+      }
+      public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+         MethodVisitor methodvisitor = super.visitMethod(access, name, desc, signature, exceptions);
+         return (MethodVisitor)(name.equals("b") && desc.equals("(Lpk;DDDFF)V")?new RenderManagerVisitor(this.api, methodvisitor):methodvisitor);
+      }
+      public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+         return name.equals("t") && desc.equals("Z")?super.visitField(1, name, desc, signature, 
